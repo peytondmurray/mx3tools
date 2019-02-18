@@ -1,0 +1,9 @@
+numpy
+scipy
+pandas
+matplotlib
+numba
+tqdm
+IPython
+pillow
+ipywidgets
