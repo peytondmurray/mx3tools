@@ -7,14 +7,14 @@ from setuptools import setup
 setup(
     name='mx3tools',
     packages=['mx3tools'],  # this must be the same as the name above
-    version='0.1',
+    version='0.2',
     description='Tools for running and processing micromagnetics simulations using Mumax3',
     author='Peyton Murray',
     author_email='peynmurray@gmail.com',
     url='https://github.com/peytondmurray/mx3tools',
     # use the URL to the github repo
     license="MIT",
-    download_url='https://github.com/peytondmurray/mx3tools/archive/0.4.zip',
+    download_url='https://github.com/peytondmurray/mx3tools/archive/v0.2.zip',
     keywords=['mumax3', 'ovf', 'micromagnetics', 'simulation'],
     # arbitrary keywords
     classifiers=[
