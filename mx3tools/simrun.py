@@ -44,7 +44,7 @@ class Sim:
             setter = getattr(self, f'set_{key}')
             setter(value)
 
-        self.script = pathlib.Path(self.base_script.stem + self.suffix + self.base_script.suffix)
+        self.script = pathlib.Path(self.base_script.stem + self.suffix + '_' + self.base_script.suffix)
         self.outdir = pathlib.Path(self.script.stem + '.out')
         if self.outdir.exists():
             if self.replace:
