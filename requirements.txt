@@ -4,6 +4,4 @@ pandas
 matplotlib
 numba
 tqdm
-IPython
-pillow
-ipywidgets
+json-tricks

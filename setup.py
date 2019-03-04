@@ -7,14 +7,14 @@ from setuptools import setup
 setup(
     name='mx3tools',
     packages=['mx3tools'],  # this must be the same as the name above
-    version='0.3',
+    version='0.4',
     description='Tools for running and processing micromagnetics simulations using Mumax3',
     author='Peyton Murray',
     author_email='peynmurray@gmail.com',
     url='https://github.com/peytondmurray/mx3tools',
     # use the URL to the github repo
     license="MIT",
-    download_url='https://github.com/peytondmurray/mx3tools/archive/v0.3.zip',
+    download_url='https://github.com/peytondmurray/mx3tools/archive/v0.4.zip',
     keywords=['mumax3', 'ovf', 'micromagnetics', 'simulation'],
     # arbitrary keywords
     classifiers=[
@@ -30,7 +30,7 @@ setup(
         # Specify the Python versions you support here. In particular, ensure
         # that you indicate whether you support Python 2, Python 3 or both.
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
     ],
     install_requires=["matplotlib", "numpy", "cmocean"],
     python_requires='>=3',
