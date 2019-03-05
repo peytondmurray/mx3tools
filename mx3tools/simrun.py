@@ -3,7 +3,7 @@ import pathlib
 import subprocess
 import tqdm
 import pandas as pd
-import json_tricks as json
+import json
 import time
 from . import ioutil
 
@@ -241,10 +241,18 @@ class Overseer:
                                        config=config,
                                        replace=replace,
                                        script_override=script_name))
-                slurm_map[i] = {'parameters': parameters, 'script': script_name}
+                
+                for k, v in parameters.items():
+                    if k in slurm_map:
+                        slurm_map[k].append(v)
+                    else:
+                        slurm_map[k] = [v]
+                if 'script' in slurm_map:
+                    slurm_map['script'].append(script_name)
+                else:
+                    slurm_map['script'] = [script_name]
 
-            with open('slurm_map.json', 'w') as f:
-                json.dump(slurm_map, f, indent=4)
+            pd.DataFrame(slurm_map).to_csv('slurm_map.csv', sep=',', index_label='index')
 
         elif slurm_base is not None:
 
