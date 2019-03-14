@@ -107,8 +107,12 @@ class Sim:
 
     def set_Dbulk(self, val):
         self.setval('Dbulk = 0.0', f'Dbulk = {val}')
-        self.suffix += f'_D={val}'
+        self.suffix += f'_Dbulk={val}'
         return
+
+    def set_Dind(self, val):
+        self.setval('Dind = 0.0', f'Dind = {val}')
+        self.suffix += f'_Dind={val}'
 
     def set_grid(self, vals):
         self.setval('setGridSize(size, 4*size, 1)', f'setGridSize({vals[0]}, {vals[1]}, {vals[2]})')
@@ -241,7 +245,7 @@ class Overseer:
                                        config=config,
                                        replace=replace,
                                        script_override=script_name))
-                
+
                 for k, v in parameters.items():
                     if k in slurm_map:
                         slurm_map[k].append(v)
