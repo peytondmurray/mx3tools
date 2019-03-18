@@ -116,18 +116,18 @@ class Sim:
         return
 
     def set_dx(self, val):
-        self.setval('dx := 2e-9', f'dx := {val:d}')
-        self.suffix += f'_dx={val:d}'
+        self.setval('dx := 2e-9', f'dx := {val}')
+        self.suffix += f'_dx={val}'
         return
 
     def set_dy(self, val):
-        self.setval('dy := 2e-9', f'dy := {val:d}')
-        self.suffix += f'_dy={val:d}'
+        self.setval('dy := 2e-9', f'dy := {val}')
+        self.suffix += f'_dy={val}'
         return
 
     def set_dz(self, val):
-        self.setval('dz := 0.5e-9', f'dz := {val:d}')
-        self.suffix += f'_dz={val:d}'
+        self.setval('dz := 0.5e-9', f'dz := {val}')
+        self.suffix += f'_dz={val}'
         return
 
     def set_Dbulk(self, val):
