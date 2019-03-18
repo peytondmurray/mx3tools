@@ -100,9 +100,34 @@ class Sim:
         self.suffix += f'_r={val}'
         return
 
-    def set_size(self, val):
-        self.setval('size := 128', f'size := {val:d}')
-        self.suffix += f'_size={val:d}'
+    def set_nx(self, val):
+        self.setval('nx := 128', f'nx := {val:d}')
+        self.suffix += f'_nx={val:d}'
+        return
+
+    def set_ny(self, val):
+        self.setval('ny := 128', f'ny := {val:d}')
+        self.suffix += f'_ny={val:d}'
+        return
+
+    def set_nz(self, val):
+        self.setval('nz := 1', f'nz := {val:d}')
+        self.suffix += f'_nz={val:d}'
+        return
+
+    def set_dx(self, val):
+        self.setval('dx := 2e-9', f'dx := {val:d}')
+        self.suffix += f'_dx={val:d}'
+        return
+
+    def set_dy(self, val):
+        self.setval('dy := 2e-9', f'dy := {val:d}')
+        self.suffix += f'_dy={val:d}'
+        return
+
+    def set_dz(self, val):
+        self.setval('dz := 0.5e-9', f'dz := {val:d}')
+        self.suffix += f'_dz={val:d}'
         return
 
     def set_Dbulk(self, val):

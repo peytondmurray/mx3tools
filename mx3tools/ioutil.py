@@ -1,7 +1,6 @@
 import pathlib
 import warnings
 import subprocess
-import json_tricks as json
 import numpy as np
 
 
