@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 import pathlib
 from . import statutil
+from . import ioutil
 
 
 class SimData:
@@ -99,19 +100,28 @@ class SimRun:
     def __repr__(self):
         return repr(self.metadata)
 
+    def append_metadata(self, name, search_value):
+        """Search through the input scripts for search_value, which is assumed to be a float. Store the found value
+        for each script in self.metadata[name].
+        """
+
+        values = []
+        for _, row in self.metadata.iterrows():
+            values.append(find_in_script(row['script'], search_value))
+
+        self.metadata[name] = values
+        return
+
 
 def get_metadata(root):
 
-    if not isinstance(root, pathlib.Path):
-        root = pathlib.Path(root)
+    root = ioutil.pathize(root)
 
     data = {}
     for item in root.iterdir():
         script = root / (item.stem + '.mx3')
         if item.is_dir() and script.exists():
             check_dict_add_val(data, 'script', script.as_posix())
-            check_dict_add_val(data, 'bext', find_in_script(script, 'B := '))
-            check_dict_add_val(data, 'r', find_in_script(script, 'r := '))
 
     return pd.DataFrame(data)
 
@@ -125,6 +135,8 @@ def check_dict_add_val(data, key, value):
 
 
 def find_in_script(script, key):
+
+    script = ioutil.pathize(script)
 
     with script.open('r') as f:
         lines = f.readlines()
