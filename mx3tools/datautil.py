@@ -67,6 +67,9 @@ class SimRun:
 
         if (self.root / 'slurm_map.csv').is_file():
             self.metadata = pd.read_csv((self.root / 'slurm_map.csv').as_posix(), sep=',')
+            scripts = [(self.root / script).as_posix() for script in self.metadata['script'].values]
+            self.metadata['script'] = scripts
+
         else:
             self.metadata = get_metadata(self.root)
         self.simulations = self._get_simulations()
