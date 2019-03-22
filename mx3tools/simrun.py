@@ -90,6 +90,11 @@ class Sim:
 
         return
 
+    def set_aex(self, val):
+        self.setval('Aex = 1.4e-11', f'Aex = {val}')
+        self.suffix += f'_Aex={val}'
+        return
+
     def set_t(self, val):
         self.setval('sim_time := 10e-9', f'sim_time := {val}')
         self.suffix += f'_t={val}'
