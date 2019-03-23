@@ -154,6 +154,18 @@ def _fast_binary_decode(f, chunk_size, headers, dtype):
     return ret.reshape((zs, ys, xs, 3))
 
 
+def _fast_binary_decode_scalars(f, chunk_size, headers, dtype):
+
+    xs, ys, zs = (int(headers['xnodes']), int(headers['ynodes']), int(headers['znodes']))
+    ret = np.ndarray(shape=(xs*ys*zs, 1),
+                     dtype=dtype,
+                     buffer=f.read(xs*ys*zs*chunk_size),
+                     offset=0,
+                     strides=(chunk_size, chunk_size))
+
+    return ret.reshape((zs, ys, xs))
+
+
 def group_unpack(path):
 
     path = ioutil.pathize(path)
@@ -164,3 +176,17 @@ def group_unpack(path):
         files = sorted(path.parent.glob('m*.ovf'))
 
     return np.array([unpack(f) for f in tqdm.tqdm(files)])
+
+
+def unpack_scalars(path):
+    path = ioutil.pathize(path)
+
+    with path.open('rb') as f:
+        headers = _read_header(f)
+
+        if headers['data_type'][3] == 'Binary':
+            chunk_size = int(headers['data_type'][4])
+            return _fast_binary_decode_scalars(f, chunk_size, headers, _endianness(f, chunk_size))
+
+        else:
+            raise NotImplementedError
