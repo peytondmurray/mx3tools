@@ -90,6 +90,16 @@ class Sim:
 
         return
 
+    def set_bextdot(self, val):
+        self.setval('Bext_dot := 0.037e-3 / 1e-9', f'Bext_dot := {val}')
+        self.suffix += f'_bextdot={val}'
+        return
+
+    def set_k(self, val):
+        self.setval('k := 0.18e-3 / 1e-9', f'k := {val}')
+        self.suffix += f'_k={val}'
+        return
+
     def set_aex(self, val):
         self.setval('Aex = 1.4e-11', f'Aex = {val}')
         self.suffix += f'_Aex={val}'
@@ -230,7 +240,8 @@ class Overseer:
                  config='./config.json',
                  replace=False,
                  slurm_base=None,
-                 generate_slurm_array=False):
+                 generate_slurm_array=False,
+                 permute_parameters=True):
 
         self.config = self.load_config(config)
         self.tables = []
@@ -242,7 +253,8 @@ class Overseer:
                                               config=self.config,
                                               replace=replace,
                                               slurm_base=slurm_base,
-                                              generate_slurm_array=generate_slurm_array)
+                                              generate_slurm_array=generate_slurm_array,
+                                              permute_parameters=permute_parameters)
 
         return
 
@@ -258,25 +270,31 @@ class Overseer:
                       config,
                       replace,
                       slurm_base,
-                      generate_slurm_array):
+                      generate_slurm_array,
+                      permute_parameters):
 
         simulations = []
+
+        if permute_parameters:
+            parameters = ioutil.permutations(parameter_space)
+        else:
+            parameters = ioutil.broadcast(parameter_space)
 
         if generate_slurm_array:
 
             slurm_map = {}
-            for i, parameters in enumerate(ioutil.permutations(parameter_space)):
+            for i, pars in enumerate(parameters):
                 script_name = '{}_{}.mx3'.format(ioutil.pathize(base_script).stem, i)
                 simulations.append(Sim(base_script=base_script,
                                        beep=beep,
                                        expand_vtk=expand_vtk,
                                        callbacks=callbacks,
-                                       parameters=parameters,
+                                       parameters=pars,
                                        config=config,
                                        replace=replace,
                                        script_override=script_name))
 
-                for k, v in parameters.items():
+                for k, v in pars.items():
                     if k in slurm_map:
                         slurm_map[k].append(v)
                     else:
@@ -290,12 +308,12 @@ class Overseer:
 
         elif slurm_base is not None:
 
-            for parameters in ioutil.permutations(parameter_space):
+            for pars in parameters:
                 simulations.append(Sim(base_script=base_script,
                                        beep=beep,
                                        expand_vtk=expand_vtk,
                                        callbacks=callbacks,
-                                       parameters=parameters,
+                                       parameters=pars,
                                        config=config,
                                        replace=replace,
                                        slurm_base=slurm_base))
@@ -303,12 +321,12 @@ class Overseer:
             self.generate_slurms()
 
         else:
-            for parameters in ioutil.permutations(parameter_space):
+            for pars in parameters:
                 simulations.append(Sim(base_script=base_script,
                                        beep=beep,
                                        expand_vtk=expand_vtk,
                                        callbacks=callbacks,
-                                       parameters=parameters,
+                                       parameters=pars,
                                        config=config,
                                        replace=replace))
 

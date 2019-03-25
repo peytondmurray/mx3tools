@@ -107,6 +107,39 @@ def permutations(dct):
     return tree.traverse()
 
 
+def broadcast(dct):
+    """Convenience function for broadcasting a dictionary of lists.
+
+    Parameters
+    ----------
+    dct : dict
+        Input parameter ranges. All parameter ranges must have only 1 or N values.
+
+    Returns
+    -------
+    list
+        List of N dictionaries; the input parameters with N values are 'zipped' together
+
+    """
+
+    N = 1
+    for k, v in dct.items():
+        if len(v) > N:
+            N = len(v)
+
+    ret = []
+    for i in range(N):
+        entry = {}
+        for k, v in dct.items():
+            if len(v) != N:
+                entry[k] = v[0]
+            else:
+                entry[k] = v[i]
+        ret.append(entry)
+
+    return ret
+
+
 def pathize(path):
     """Takes a string or pathlib.Path object and return the corresponding pathlib.Path object.
 
