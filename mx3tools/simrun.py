@@ -245,6 +245,7 @@ class Overseer:
 
         self.config = self.load_config(config)
         self.tables = []
+        self.root = ioutil.pathize(base_script).stem
         self.simulations = self.generate_sims(parameter_space,
                                               base_script,
                                               beep=beep,
@@ -332,16 +333,22 @@ class Overseer:
 
         return simulations
 
+    def remove_junk(self):
+        subprocess.run(['find', self.root, '-name', 'gui', '-delete'], shell=False)
+        subprocess.run(['find', self.root, '-name', '*.bib', '-delete'], shell=False)
+        return
+
     def generate_slurms(self):
         for sim in self.simulations:
             sim.generate_slurm()
         return
 
-    def run(self):
-        # for sim in self.simulations:
+    def run(self, remove_junk=True):
         for sim in tqdm.tqdm(self.simulations):
             sim.run()
-            self.tables.append(sim.get_table())
+
+        if remove_junk:
+            self.remove_junk()
         return
 
     def data_directories(self):
