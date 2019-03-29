@@ -3,9 +3,11 @@ import pathlib
 import subprocess
 import tqdm
 import pandas as pd
+import scipy.constants as scc
 import json
 import time
 from . import ioutil
+from . import datautil
 
 
 class Sim:
@@ -19,7 +21,8 @@ class Sim:
                  parameters=None,
                  replace=False,
                  slurm_base=None,
-                 script_override=None):
+                 script_override=None,
+                 t99_sim_time=False):
 
         self.config = config
         self.base_script = ioutil.pathize(base_script)
@@ -32,6 +35,10 @@ class Sim:
         self.suffix = ''
         self.replace = replace
         self.parameters = parameters
+
+        if t99_sim_time and 'bext' in parameters and 'alpha' in parameters:
+            parameters['t'] = t99(parameters['bext'], parameters['alpha'])
+
         self.slurm_base = slurm_base
         self.script_override = script_override
 
@@ -88,6 +95,11 @@ class Sim:
             setter = getattr(self, f'set_{key}')
             setter(value)
 
+        return
+
+    def set_alpha(self, val):
+        self.setval('alpha = 0.27', f'alpha = {val}')
+        self.suffix += f'_alpha={val}'
         return
 
     def set_bextdot(self, val):
@@ -255,7 +267,8 @@ class Overseer:
                                               replace=replace,
                                               slurm_base=slurm_base,
                                               generate_slurm_array=generate_slurm_array,
-                                              permute_parameters=permute_parameters)
+                                              permute_parameters=permute_parameters,
+                                              t99_sim_time=False)
 
         return
 
@@ -272,7 +285,8 @@ class Overseer:
                       replace,
                       slurm_base,
                       generate_slurm_array,
-                      permute_parameters):
+                      permute_parameters,
+                      t99_sim_time):
 
         simulations = []
 
@@ -293,7 +307,8 @@ class Overseer:
                                        parameters=pars,
                                        config=config,
                                        replace=replace,
-                                       script_override=script_name))
+                                       script_override=script_name,
+                                       t99_sim_time=t99_sim_time))
 
                 for k, v in pars.items():
                     if k in slurm_map:
@@ -317,7 +332,8 @@ class Overseer:
                                        parameters=pars,
                                        config=config,
                                        replace=replace,
-                                       slurm_base=slurm_base))
+                                       slurm_base=slurm_base,
+                                       t99_sim_time=t99_sim_time))
 
             self.generate_slurms()
 
@@ -329,7 +345,8 @@ class Overseer:
                                        callbacks=callbacks,
                                        parameters=pars,
                                        config=config,
-                                       replace=replace))
+                                       replace=replace,
+                                       t99_sim_time=t99_sim_time))
 
         return simulations
 
@@ -399,3 +416,24 @@ class Overseer:
         with open(config, 'r') as f:
             config = json.load(f)
         return config
+
+
+def t99(B, alpha):
+    """Calculate the length of time needed to simulate such that if no oscillation is observed, the walker field Bw
+    is withing 1% of the applied field B.
+
+    Parameters
+    ----------
+    B : float
+        Applied field
+    alpha : float
+        Gilbert damping parameter
+
+    Returns
+    -------
+    float
+        time
+    """
+
+    Q = 2*scc.pi*(1+alpha**2)/scc.physical_constants['electron gyromag. ratio'][0]
+    return (((Q/B)**2)/(1-0.99**2))**0.5
