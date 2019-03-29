@@ -22,7 +22,8 @@ class Sim:
                  replace=False,
                  slurm_base=None,
                  script_override=None,
-                 t99_sim_time=False):
+                 t99_sim_time=False,
+                 transient=0):
 
         self.config = config
         self.base_script = ioutil.pathize(base_script)
@@ -37,7 +38,7 @@ class Sim:
         self.parameters = parameters
 
         if t99_sim_time and 'bext' in parameters and 'alpha' in parameters:
-            parameters['t'] = t99(parameters['bext'], parameters['alpha'])
+            parameters['t'] = t99(parameters['bext'], parameters['alpha'])+transient
 
         self.slurm_base = slurm_base
         self.script_override = script_override
@@ -253,7 +254,9 @@ class Overseer:
                  replace=False,
                  slurm_base=None,
                  generate_slurm_array=False,
-                 permute_parameters=True):
+                 permute_parameters=True,
+                 t99_sim_time=False,
+                 transient=0):
 
         self.config = self.load_config(config)
         self.tables = []
@@ -268,7 +271,8 @@ class Overseer:
                                               slurm_base=slurm_base,
                                               generate_slurm_array=generate_slurm_array,
                                               permute_parameters=permute_parameters,
-                                              t99_sim_time=False)
+                                              t99_sim_time=False,
+                                              transient=0)
 
         return
 
@@ -286,7 +290,8 @@ class Overseer:
                       slurm_base,
                       generate_slurm_array,
                       permute_parameters,
-                      t99_sim_time):
+                      t99_sim_time,
+                      transient=0):
 
         simulations = []
 
@@ -308,7 +313,8 @@ class Overseer:
                                        config=config,
                                        replace=replace,
                                        script_override=script_name,
-                                       t99_sim_time=t99_sim_time))
+                                       t99_sim_time=t99_sim_time,
+                                       transient=transient))
 
                 for k, v in pars.items():
                     if k in slurm_map:
@@ -333,7 +339,8 @@ class Overseer:
                                        config=config,
                                        replace=replace,
                                        slurm_base=slurm_base,
-                                       t99_sim_time=t99_sim_time))
+                                       t99_sim_time=t99_sim_time,
+                                       transient=transient))
 
             self.generate_slurms()
 
@@ -346,7 +353,8 @@ class Overseer:
                                        parameters=pars,
                                        config=config,
                                        replace=replace,
-                                       t99_sim_time=t99_sim_time))
+                                       t99_sim_time=t99_sim_time,
+                                       transient=transient))
 
         return simulations
 
