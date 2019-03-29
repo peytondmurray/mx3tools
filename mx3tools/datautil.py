@@ -4,6 +4,9 @@ import re
 import numpy as np
 import pandas as pd
 import pathlib
+import astropy.stats as aps
+import scipy.signal as scs
+import scipy.constants as scc
 from . import statutil
 from . import ioutil
 
@@ -32,25 +35,34 @@ class SimData:
 
         raise ValueError('No time found.')
 
-    def get_Axy(self):
+    def Axy(self):
         return self.table['ext_axy (rad/s)'].values
 
-    def get_Az(self):
+    def Az(self):
         return self.table['ext_az (rad/s)'].values
 
-    def get_vdw(self, vdwcol=None):
+    def vdw(self, vdwcol=None):
         if vdwcol is None:
             for vdwcol in ['ext_exactdwvelavg (m/s)', 'ext_dwfinespeed (m/s)', 'ext_exactdwvelzc (m/s)']:
                 if vdwcol in self.table:
                     return self.table[vdwcol].values
+            raise ValueError('No vdw column in data.')
         else:
             return self.table[vdwcol].values
 
-    def get_t(self):
+    def ddw(self):
+
+        ddwcol = 'ext_dwwidth (m)'
+        if ddwcol in self.table:
+            return self.table[ddwcol].values
+        else:
+            raise ValueError('No ddw column in data.')
+
+    def t(self):
         return self.table['# t (s)'].values
 
     def get_events(self):
-        return statutil.get_events(self.get_t(), self.get_vdw(), self.threshold)
+        return statutil.get_events(self.t(), self.vdw(), self.threshold)
 
     def get_dwconfigs(self):
         dwconfigs = []
@@ -61,7 +73,37 @@ class SimData:
         return [pd.read_csv((self.data_dir / item), sep=',', skiprows=1) for item in sorted(dwconfigs)]
 
     def avg_vdw(self, t_cutoff):
-        return np.mean(self.get_vdw()[self.get_t() > t_cutoff])
+        return np.mean(self.vdw()[self.t() > t_cutoff])
+
+    def avg_ddw(self, t_cutoff):
+        return np.mean(self.ddw()[self.t() > t_cutoff])
+
+    def precession_freq(self):
+        tf, vf = aps.LombScargle(self.t(), self.vdw()).autopower()
+        peaks, _ = scs.find_peaks(vf, height=np.max(vf)*0.9)
+        if len(peaks) > 0:
+            return tf[peaks[0]]
+        else:
+            return np.nan
+
+    def Bw_lower_bound(self, B, alpha):
+        """If below the walker field Bw, we can estimate the lower bound of the walker field based on the integration
+        time and the applied field.
+
+        Parameters
+        ----------
+        B : float
+            Applied field [T]
+        alpha : float
+            Gilbert damping parameter
+
+        Returns
+        -------
+        float
+            Lower bound for the walker field
+        """
+
+        return Bw(B, self.t()[-1], alpha)
 
 
 class SimRun:
@@ -157,3 +199,26 @@ def find_in_script(script, key):
             return float(line.split(sep=key)[-1].split(sep=' ')[0])
 
     raise ValueError(f'Key {key} not found in script {script}')
+
+
+def Bw(B, T, alpha):
+    """When below the walker field, the magnetization will precess. Estimate the walker field given some integration
+    time and applied field, assuming the period of precession is exactly the length of time you spent integrating.
+    This gives a lower bound on the walker field.
+
+    Parameters
+    ----------
+    B : float
+        Applied fiel
+    T : float
+        Integration time (precession frequency)
+    alpha : float
+        Gilbert damping parameter
+
+    Returns
+    -------
+    float
+        [description]
+    """
+
+    return np.sqrt(B**2 - ((2*scc.pi*(1+alpha**2))/(scc.physical_constants['electron gyromag. ratio'][0]*T))**2)
