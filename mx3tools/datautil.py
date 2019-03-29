@@ -38,14 +38,19 @@ class SimData:
     def get_Az(self):
         return self.table['ext_az (rad/s)'].values
 
-    def get_vdw(self, vdwcol='ext_exactdwvelavg (m/s)'):
-        return self.table[vdwcol].values
+    def get_vdw(self, vdwcol=None):
+        if vdwcol is None:
+            for vdwcol in ['ext_exactdwvelavg (m/s)', 'ext_dwfinespeed (m/s)', 'ext_exactdwvelzc (m/s)']:
+                if vdwcol in self.table:
+                    return self.table[vdwcol].values
+        else:
+            return self.table[vdwcol].values
 
     def get_t(self):
         return self.table['# t (s)'].values
 
-    def get_events(self, vdwcol='ext_exactdwvelavg (m/s)'):
-        return statutil.get_events(self.get_t(), self.get_vdw(vdwcol), self.threshold)
+    def get_events(self):
+        return statutil.get_events(self.get_t(), self.get_vdw(), self.threshold)
 
     def get_dwconfigs(self):
         dwconfigs = []
@@ -54,6 +59,9 @@ class SimData:
                 dwconfigs.append(item.name)
 
         return [pd.read_csv((self.data_dir / item), sep=',', skiprows=1) for item in sorted(dwconfigs)]
+
+    def avg_vdw(self, t_cutoff):
+        return np.mean(self.get_vdw()[self.get_t() > t_cutoff])
 
 
 class SimRun:
