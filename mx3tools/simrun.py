@@ -271,7 +271,7 @@ class Overseer:
                                               slurm_base=slurm_base,
                                               generate_slurm_array=generate_slurm_array,
                                               permute_parameters=permute_parameters,
-                                              t99_sim_time=False,
+                                              t99_sim_time=t99_sim_time,
                                               transient=0)
 
         return
