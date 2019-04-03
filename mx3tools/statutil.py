@@ -59,13 +59,14 @@ def event_end(signal, threshold, start):
 @nb.jit(nopython=True)
 def event_size(t, signal, threshold, i_start, i_end):
 
-    V = signal - threshold
-    return np.trapz(y=V[i_start:i_end], x=t[i_start:i_end])
+    # V = signal - threshold
+    # return np.trapz(y=V[i_start:i_end], x=t[i_start:i_end])
 
     # Old style. Numba now supports nb.trapz, so there isn't much point here.
-    # dt = t[1:]-t[:-1]
+    V = signal[1:-1] - threshold
+    dt = (t[2:]-t[:-2])*0.5
     # dt = np.diff(t)
-    # return np.sum((V[:-1]*dt)[i_start:i_end])
+    return np.sum((V*dt)[i_start:i_end])
 
 
 @nb.jit(nopython=True)
