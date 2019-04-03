@@ -260,7 +260,7 @@ class Overseer:
 
         self.config = self.load_config(config)
         self.tables = []
-        self.root = ioutil.pathize(base_script).stem
+        self.root = ioutil.pathize(base_script).parent
         self.simulations = self.generate_sims(parameter_space,
                                               base_script,
                                               beep=beep,
@@ -359,8 +359,8 @@ class Overseer:
         return simulations
 
     def remove_junk(self):
-        subprocess.run(['find', self.root, '-name', 'gui', '-delete'], shell=False)
-        subprocess.run(['find', self.root, '-name', '*.bib', '-delete'], shell=False)
+        subprocess.run(['find', self.root.as_posix(), '-name', 'gui', '-delete'], shell=False)
+        subprocess.run(['find', self.root.as_posix(), '-name', '*.bib', '-delete'], shell=False)
         return
 
     def generate_slurms(self):
