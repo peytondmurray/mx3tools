@@ -7,8 +7,41 @@ import pathlib
 import astropy.stats as aps
 import scipy.signal as scs
 import scipy.constants as scc
+import matplotlib.pyplot as plt
+import matplotlib.animation as animation
 from . import statutil
 from . import ioutil
+
+
+class DomainWall:
+
+    def __init__(self, root):
+        self.config = []
+        self.time = []
+        self.root = root
+
+        files = []
+        for item in self.root.iterdir():
+            if re.search(r'domainwall\d{6}.csv', item.name) is not None:
+                files.append(self.root / item.name)
+
+        files = sorted(files)
+        for item in files:
+            self.append(item)
+
+        return
+
+    def append(self, fname):
+        with open(fname, 'r') as f:
+            self.time.append(float(f.readline().split('#time = ')[1]))
+
+        df = pd.read_csv(fname, sep=',', skiprows=1)
+        df.sort_values('y', inplace=True)
+        self.config.append(df)
+        return
+
+    def __len__(self):
+        return len(self.time)
 
 
 class SimData:
@@ -58,19 +91,17 @@ class SimData:
         else:
             raise ValueError('No ddw column in data.')
 
+    def shift(self):
+        return self.table['ext_dwpos (m)'].values
+
     def t(self):
         return self.table['# t (s)'].values
 
     def get_events(self):
         return statutil.get_events(self.t(), self.vdw(), self.threshold)
 
-    def get_dwconfigs(self):
-        dwconfigs = []
-        for item in self.data_dir.iterdir():
-            if re.search(r'domainwall\d{6}.csv', item.name) is not None:
-                dwconfigs.append(item.name)
-
-        return [pd.read_csv((self.data_dir / item), sep=',', skiprows=1) for item in sorted(dwconfigs)]
+    def get_wall(self):
+        return DomainWall(self.data_dir)
 
     def avg_vdw(self, t_cutoff):
         return np.mean(self.vdw()[self.t() > t_cutoff])
@@ -104,6 +135,73 @@ class SimData:
         """
 
         return Bw(B, self.t()[-1], alpha)
+
+    def anim(self, ax, **kwargs):
+
+        wall = self.get_wall()
+
+        line = ax.plot(wall.config[0]['x'], wall.config[0]['y'], color='k', linestyle='-')[0]
+        tag = ax.text(kwargs.get('textx', 0.1), kwargs.get('texty', 0.1), '', transform=ax.transAxes)
+
+        def init():
+            line.set_xdata([])
+            line.set_ydata([])
+            tag.set_text('')
+            return line, tag
+
+        def anim(i):
+            line.set_xdata(wall.config[i]['x'])
+            line.set_ydata(wall.config[i]['y'])
+            tag.set_text(f'Time: {wall.time[i]:3.3e}')
+            return line, tag
+
+        return animation.FuncAnimation(ax.get_figure(),
+                                       func=anim,
+                                       init_func=init,
+                                       frames=len(wall)-2,
+                                       interval=kwargs.get('interval', 100),
+                                       blit=False,
+                                       save_count=len(wall)/10)
+
+    def anim_burst(self, ax, **kwargs):
+
+        wall = self.get_wall()
+
+        line_old = ax.plot(wall.config[0]['x'], wall.config[0]['y'], color='k', linestyle='-')[0]
+        line_new = ax.plot(wall.config[0]['x'], wall.config[0]['y'], color='k', linestyle='-')[0]
+        tag = ax.text(kwargs.get('textx', 0.1), kwargs.get('texty', 0.1), '', transform=ax.transAxes)
+        polygon = ax.fill(np.empty((1, 2)), facecolor=np.random.rand(3))[0]
+
+        def init():
+            line_old.set_xdata([])
+            line_old.set_ydata([])
+            line_new.set_xdata([])
+            line_new.set_ydata([])
+            polygon.set_facecolor((0, 0, 0, 0))
+            tag.set_text('')
+            return line_old, line_new, tag, polygon
+
+        def anim(i):
+            line_old.set_xdata(wall.config[i]['x'])
+            line_old.set_ydata(wall.config[i]['y'])
+            line_new.set_xdata(wall.config[i+1]['x'])
+            line_new.set_ydata(wall.config[i+1]['y'])
+            _x = np.hstack((wall.config[i]['x'], wall.config[i+1]['x']))
+            _y = np.hstack((wall.config[i]['y'], wall.config[i+1]['y']))
+            _xy = np.vstack((_x, _y)).T
+            polygon.set_xy(_xy)
+            polygon.set_facecolor(np.random.rand(3))
+            tag.set_text(f'Time: {wall.time[i+1]:3.3e}')
+
+            return line_old, line_new, tag, fill#, polygon
+
+        return animation.FuncAnimation(ax.get_figure(),
+                                       func=anim,
+                                       init_func=init,
+                                       frames=len(wall)-2,
+                                       interval=kwargs.get('interval', 100),
+                                       blit=True,
+                                       save_count=len(wall)/10)
 
 
 class SimRun:
