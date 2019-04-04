@@ -18,9 +18,9 @@ class SimData:
 
     def __init__(self, script, data_dir, threshold=0.1):
 
-        self.data_dir = data_dir
+        self.data_dir = ioutil.pathize(data_dir)
         self.script = script
-        self.table = pd.read_csv((data_dir / 'table.txt').as_posix(), sep='\t')
+        self.table = pd.read_csv((self.data_dir / 'table.txt').as_posix(), sep='\t')
         self.threshold = threshold
         return
 
