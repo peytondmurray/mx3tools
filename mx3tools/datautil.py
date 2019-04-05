@@ -263,6 +263,12 @@ class SimRun:
         self.metadata[name] = values
         return
 
+    def get_vdws(self, t_cutoff):
+        return [sim.avg_vdw(t_cutoff=t_cutoff) for sim in self.simulations]
+
+    def get_ddws(self, t_cutoff):
+        return [sim.avg_ddw(t_cutoff=t_cutoff) for sim in self.simulations]
+
 
 def get_metadata(root):
 
