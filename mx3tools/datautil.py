@@ -1,14 +1,16 @@
 # Data structures related to simulation output files
 
 import re
+import pathlib
+import warnings
 import numpy as np
 import pandas as pd
-import pathlib
 import astropy.stats as aps
 import scipy.signal as scs
 import scipy.constants as scc
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
+import matplotlib.cm as cm
 from . import statutil
 from . import ioutil
 
@@ -19,11 +21,15 @@ class DomainWall:
         self.config = []
         self.time = []
         self.root = root
+        self.window_pos = []
 
         files = []
         for item in self.root.iterdir():
             if re.search(r'domainwall\d{6}.csv', item.name) is not None:
                 files.append(self.root / item.name)
+
+        if len(files) == 0:
+            raise ValueError('No domain wall files found.')
 
         files = sorted(files)
         for item in files:
@@ -34,6 +40,11 @@ class DomainWall:
     def append(self, fname):
         with open(fname, 'r') as f:
             self.time.append(float(f.readline().split('#time = ')[1]))
+            line = f.readline()
+            if '#window_position' in line:
+                self.window_pos.append(float(line.split('#window_position = ')[1]))
+            else:
+                self.window_pos.append(0)
 
         df = pd.read_csv(fname, sep=',', skiprows=1)
         df.sort_values('y', inplace=True)
@@ -42,6 +53,12 @@ class DomainWall:
 
     def __len__(self):
         return len(self.time)
+
+    def get_window_pos(self):
+        if np.any(np.isnan(self.window_pos)):
+            warnings.warn('No window position header found.')
+        else:
+            return self.window_pos
 
 
 class SimData:
@@ -83,13 +100,13 @@ class SimData:
         else:
             return self.table[vdwcol].values
 
-    def ddw(self):
+    def dww(self):
 
-        ddwcol = 'ext_dwwidth (m)'
-        if ddwcol in self.table:
-            return self.table[ddwcol].values
+        dwwcol = 'ext_dwwidth (m)'
+        if dwwcol in self.table:
+            return self.table[dwwcol].values
         else:
-            raise ValueError('No ddw column in data.')
+            raise ValueError('No dww column in data.')
 
     def shift(self):
         return self.table['ext_dwpos (m)'].values
@@ -106,8 +123,14 @@ class SimData:
     def avg_vdw(self, t_cutoff):
         return np.mean(self.vdw()[self.t() > t_cutoff])
 
-    def avg_ddw(self, t_cutoff):
-        return np.mean(self.ddw()[self.t() > t_cutoff])
+    def avg_dww(self, t_cutoff):
+        return np.mean(self.dww()[self.t() > t_cutoff])
+
+    def std_vdw(self, t_cutoff):
+        return np.std(self.vdw()[self.t() > t_cutoff])
+
+    def std_dww(self, t_cutoff):
+        return np.std(self.dww()[self.t() > t_cutoff])
 
     def precession_freq(self):
         tf, vf = aps.LombScargle(self.t(), self.vdw()).autopower()
@@ -160,48 +183,38 @@ class SimData:
                                        init_func=init,
                                        frames=len(wall)-2,
                                        interval=kwargs.get('interval', 100),
-                                       blit=False,
-                                       save_count=len(wall)/10)
+                                       blit=True)
 
-    def anim_burst(self, ax, **kwargs):
+    def anim_burst(self, ax, cmap, **kwargs):
 
         wall = self.get_wall()
 
-        line_old = ax.plot(wall.config[0]['x'], wall.config[0]['y'], color='k', linestyle='-')[0]
-        line_new = ax.plot(wall.config[0]['x'], wall.config[0]['y'], color='k', linestyle='-')[0]
+        if isinstance(cmap, str):
+            cmap = cm.get_cmap(cmap)
+
         tag = ax.text(kwargs.get('textx', 0.1), kwargs.get('texty', 0.1), '', transform=ax.transAxes)
-        polygon = ax.fill(np.empty((1, 2)), facecolor=np.random.rand(3))[0]
 
         def init():
-            line_old.set_xdata([])
-            line_old.set_ydata([])
-            line_new.set_xdata([])
-            line_new.set_ydata([])
-            polygon.set_facecolor((0, 0, 0, 0))
+            ax.plot(wall.config[0]['x'], wall.config[0]['y'], color='k', linestyle='-')
+            ax.plot(wall.config[0]['x'], wall.config[0]['y'], color='k', linestyle='-')
             tag.set_text('')
-            return line_old, line_new, tag, polygon
+            return
 
         def anim(i):
-            line_old.set_xdata(wall.config[i]['x'])
-            line_old.set_ydata(wall.config[i]['y'])
-            line_new.set_xdata(wall.config[i+1]['x'])
-            line_new.set_ydata(wall.config[i+1]['y'])
-            _x = np.hstack((wall.config[i]['x'], wall.config[i+1]['x']))
-            _y = np.hstack((wall.config[i]['y'], wall.config[i+1]['y']))
-            _xy = np.vstack((_x, _y)).T
-            polygon.set_xy(_xy)
-            polygon.set_facecolor(np.random.rand(3))
+            ax.plot(wall.config[i+1]['x'], wall.config[i+1]['y'], color='k', linestyle='-')
+            ax.fill_betweenx(wall.config[i]['y'],
+                             wall.config[i]['x'],
+                             wall.config[i+1]['x'],
+                             facecolor=cmap(wall.time[i]/wall.time[-1]))
             tag.set_text(f'Time: {wall.time[i+1]:3.3e}')
 
-            return line_old, line_new, tag, fill#, polygon
+            return
 
         return animation.FuncAnimation(ax.get_figure(),
                                        func=anim,
                                        init_func=init,
                                        frames=len(wall)-2,
-                                       interval=kwargs.get('interval', 100),
-                                       blit=True,
-                                       save_count=len(wall)/10)
+                                       interval=kwargs.get('interval', 100))
 
 
 class SimRun:
@@ -263,11 +276,11 @@ class SimRun:
         self.metadata[name] = values
         return
 
-    def get_vdws(self, t_cutoff):
+    def avg_vdws(self, t_cutoff=0):
         return [sim.avg_vdw(t_cutoff=t_cutoff) for sim in self.simulations]
 
-    def get_ddws(self, t_cutoff):
-        return [sim.avg_ddw(t_cutoff=t_cutoff) for sim in self.simulations]
+    def avg_dwws(self, t_cutoff=0):
+        return [sim.avg_dww(t_cutoff=t_cutoff) for sim in self.simulations]
 
 
 def get_metadata(root):
