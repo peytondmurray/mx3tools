@@ -6,6 +6,43 @@ import numba as nb
 import pathlib
 
 
+class Seisograph:
+
+    def __init__(self, t, v, vt):
+
+        self.t = t
+        self.v = v
+        self.vt = vt
+
+        return
+
+
+
+
+def start_indices(v, vt):
+    vn = v-vt
+    return np.nonzero(np.logical_and(vn[1:] > 0, vn[:-1] < 0))[0]
+
+
+def end_indices(v, vt):
+    vn = v-vt
+    return np.nonzero(np.logical_and(vn[1:] < 0, vn[:-1] > 0))[0]
+
+
+def events(v, vt):
+
+    i_start = start_indices(v, vt)
+    i_end = end_indices(v, vt)
+
+    if i_start[0] > i_end[0]:
+        i_end = i_end[1:]
+    if i_start[-1] < i_end[-1]:
+        i_end[-1] = len(v)-1
+
+    return
+
+
+
 @nb.jitclass({'start': nb.float32, 'stop': nb.float32, 'size': nb.float32, 'duration': nb.float32})
 class Event:
     """Holds information about a single event - an excursion of the signal of interest above the threshold value.
@@ -62,7 +99,7 @@ def event_size(t, signal, threshold, i_start, i_end):
     # V = signal - threshold
     # return np.trapz(y=V[i_start:i_end], x=t[i_start:i_end])
 
-    # Old style. Numba now supports nb.trapz, so there isn't much point here.
+    # Old style. np.trapz gives zero size events if only a single point is above the threshold...
     V = signal[1:-1] - threshold
     dt = (t[2:]-t[:-2])*0.5
     # dt = np.diff(t)
@@ -88,11 +125,3 @@ def get_events(t, signal, threshold):
             i = i_start
 
     return events
-
-
-def get_sizes(events):
-    return np.array([event.size for event in events])
-
-
-def get_durations(events):
-    return np.array([event.duration for event in events])

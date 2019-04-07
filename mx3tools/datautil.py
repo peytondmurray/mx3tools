@@ -72,6 +72,9 @@ class SimData:
         self.script = script
         self.table = pd.read_csv((self.data_dir / 'table.txt').as_posix(), sep='\t')
         self.threshold = threshold
+        self.events = None
+        self.wall = None
+
         return
 
     def get_simulation_time(self):
@@ -115,10 +118,22 @@ class SimData:
         return self.table['# t (s)'].values
 
     def get_events(self):
-        return statutil.get_events(self.t(), self.vdw(), self.threshold)
+        if self.events is None:
+            self.events = statutil.get_events(self.t(), self.vdw(), self.threshold)
+        return self.events
+
+    def get_sizes(self):
+        events = self.get_events()
+        return [event.duration for event in events]
+
+    def get_durations(self):
+        events = self.get_events()
+        return [event.size for event in events]
 
     def get_wall(self):
-        return DomainWall(self.data_dir)
+        if self.wall is None:
+            self.wall = DomainWall(self.data_dir)
+        return self.wall
 
     def avg_vdw(self, t_cutoff):
         return np.mean(self.vdw()[self.t() > t_cutoff])
