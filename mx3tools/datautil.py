@@ -13,6 +13,7 @@ import matplotlib.animation as animation
 import matplotlib.cm as cm
 from . import statutil
 from . import ioutil
+import tqdm
 
 
 class DomainWall:
@@ -32,7 +33,7 @@ class DomainWall:
             raise ValueError('No domain wall files found.')
 
         files = sorted(files)
-        for item in files:
+        for item in tqdm.tqdm(files):
             self.append(item)
 
         return
@@ -42,11 +43,15 @@ class DomainWall:
             self.time.append(float(f.readline().split('#time = ')[1]))
             line = f.readline()
             if '#window_position' in line:
-                self.window_pos.append(float(line.split('#window_position = ')[1]))
+                try:
+                    self.window_pos.append(float(line.split('#window_position = ')[1]))
+                except:
+                    self.window_pos.append(0)
+
             else:
                 self.window_pos.append(0)
 
-        df = pd.read_csv(fname, sep=',', skiprows=1)
+        df = pd.read_csv(fname, sep=',', comment='#')
         df.sort_values('y', inplace=True)
         self.config.append(df)
         return
@@ -57,6 +62,7 @@ class DomainWall:
     def get_window_pos(self):
         if np.any(np.isnan(self.window_pos)):
             warnings.warn('No window position header found.')
+            return 0
         else:
             return self.window_pos
 
@@ -174,33 +180,46 @@ class SimData:
 
         return Bw(B, self.t()[-1], alpha)
 
-    def anim(self, ax, **kwargs):
+    def anim(self, ax, track=False, **kwargs):
 
         wall = self.get_wall()
 
-        line = ax.plot(wall.config[0]['x'], wall.config[0]['y'], color='k', linestyle='-')[0]
+        line = ax.plot(wall.config[0]['x'], wall.config[0]['y'], color=kwargs.get('color', 'k'), linestyle='-')[0]
         tag = ax.text(kwargs.get('textx', 0.1), kwargs.get('texty', 0.1), '', transform=ax.transAxes)
 
         def init():
-            line.set_xdata([])
-            line.set_ydata([])
+            ax.plot(wall.config[0]['x'], wall.config[0]['y'], color=kwargs.get('color', 'k'), linestyle='-')
+            ax.plot(wall.config[0]['x'], wall.config[0]['y'], color=kwargs.get('color', 'k'), linestyle='-')
             tag.set_text('')
-            return line, tag
+            return  # line, tag
 
-        def anim(i):
-            line.set_xdata(wall.config[i]['x'])
-            line.set_ydata(wall.config[i]['y'])
-            tag.set_text(f'Time: {wall.time[i]:3.3e}')
-            return line, tag
+        if track:
+
+            def anim(i):
+                xlim = kwargs.get('xlim', (0, 1024e-9))
+                line.set_xdata(wall.config[i]['x'])
+                line.set_ydata(wall.config[i]['y'])
+                tag.set_text(f'Time: {wall.time[i]:3.3e}')
+                ax.set_xlim(np.array(xlim)-np.mean(xlim)+np.mean(wall.config[i]['x']))
+                return  # line, tag
+
+        else:
+            ax.set_xlim(kwargs.get('xlim', (0, np.max(wall.get_window_pos()))))
+
+            def anim(i):
+                line.set_xdata(wall.config[i]['x'])
+                line.set_ydata(wall.config[i]['y'])
+                tag.set_text(f'Time: {wall.time[i]:3.3e}')
+                return  # line, tag
 
         return animation.FuncAnimation(ax.get_figure(),
                                        func=anim,
                                        init_func=init,
-                                       frames=len(wall)-2,
+                                       frames=kwargs.get('maxframes', len(wall)-2),
                                        interval=kwargs.get('interval', 100),
-                                       blit=True)
+                                       blit=False)
 
-    def anim_burst(self, ax, cmap, **kwargs):
+    def anim_burst(self, ax, cmap, track=False, **kwargs):
 
         wall = self.get_wall()
 
@@ -210,26 +229,56 @@ class SimData:
         tag = ax.text(kwargs.get('textx', 0.1), kwargs.get('texty', 0.1), '', transform=ax.transAxes)
 
         def init():
-            ax.plot(wall.config[0]['x'], wall.config[0]['y'], color='k', linestyle='-')
-            ax.plot(wall.config[0]['x'], wall.config[0]['y'], color='k', linestyle='-')
+            ax.plot(wall.config[0]['x'], wall.config[0]['y'], color=kwargs.get('color', 'k'), linestyle='-')
+            ax.plot(wall.config[0]['x'], wall.config[0]['y'], color=kwargs.get('color', 'k'), linestyle='-')
             tag.set_text('')
             return
 
-        def anim(i):
-            ax.plot(wall.config[i+1]['x'], wall.config[i+1]['y'], color='k', linestyle='-')
-            ax.fill_betweenx(wall.config[i]['y'],
-                             wall.config[i]['x'],
-                             wall.config[i+1]['x'],
-                             facecolor=cmap(wall.time[i]/wall.time[-1]))
-            tag.set_text(f'Time: {wall.time[i+1]:3.3e}')
+        if track:
+            xlim = kwargs.get('xlim', (0, 1024e-9))
 
-            return
+            def anim(i):
+                ax.plot(wall.config[i+1]['x'], wall.config[i+1]['y'], color=kwargs.get('color', 'k'), linestyle='-')
+                ax.fill_betweenx(wall.config[i]['y'],
+                                 wall.config[i]['x'],
+                                 wall.config[i+1]['x'],
+                                 facecolor=cmap(wall.time[i]/wall.time[-1]))
+                tag.set_text(f'Time: {wall.time[i+1]:3.3e}')
+                ax.set_xlim(np.array(xlim)-np.mean(xlim)+np.mean(wall.config[i]['x']))
+                return
+        else:
+            ax.set_xlim(kwargs.get('xlim', (0, np.max(wall.get_window_pos()))))
+
+            def anim(i):
+                ax.plot(wall.config[i+1]['x'], wall.config[i+1]['y'], color=kwargs.get('color', 'k'), linestyle='-')
+                ax.fill_betweenx(wall.config[i]['y'],
+                                 wall.config[i]['x'],
+                                 wall.config[i+1]['x'],
+                                 facecolor=cmap(wall.time[i]/wall.time[-1]))
+                tag.set_text(f'Time: {wall.time[i+1]:3.3e}')
+                return
 
         return animation.FuncAnimation(ax.get_figure(),
                                        func=anim,
                                        init_func=init,
                                        frames=len(wall)-2,
                                        interval=kwargs.get('interval', 100))
+
+    def burst(self, ax, cmap, **kwargs):
+
+        wall = self.get_wall()
+
+        if isinstance(cmap, str):
+            cmap = cm.get_cmap(cmap)
+
+        # ax.plot(wall.config[0]['x'], wall.config[0]['y'], kwargs.get('color', 'k'), linestyle='-')
+
+        for i in range(1, len(wall)):
+            # ax.plot(wall.config[i]['x'], wall.config[i]['y'], kwargs.get('color', 'k'), linestyle='-')
+            ax.fill_betweenx(wall.config[i]['y'], wall.config[i-1]['x'], wall.config[i]
+                             ['x'], facecolor=cmap(wall.time[i]/wall.time[-1]), edgecolor='k')
+
+        return
 
 
 class SimRun:
