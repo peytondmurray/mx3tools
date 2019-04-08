@@ -317,10 +317,10 @@ class SimRun:
         return self.simulations[i]
 
     def get_avalanche_durations(self):
-        return np.array([sim.get_avalanche_durations() for sim in self.simulations])
+        return np.hstack([sim.get_avalanche_durations() for sim in self.simulations])
 
     def get_avalanche_sizes(self):
-        return np.array([sim.get_avalanche_sizes() for sim in self.simulations])
+        return np.hstack([sim.get_avalanche_sizes() for sim in self.simulations])
 
     def __repr__(self):
         return self.metadata.to_html()
