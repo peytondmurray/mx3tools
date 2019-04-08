@@ -6,7 +6,7 @@ import numba as nb
 import pathlib
 
 
-class Seisograph:
+class Seismograph:
 
     def __init__(self, t, v, vt):
 
@@ -14,9 +14,12 @@ class Seisograph:
         self.v = v
         self.vt = vt
 
+        self.istart, self.istop = events(v, vt)
+        self.tstart, self.tstop = self.t[self.istart], self.t[self.istop]
+        self.durations = self.tstart - self.tstop
+        self.sizes = event_size(self.t, self.v, self.vt, self.tstart, self.tstop)
+
         return
-
-
 
 
 def start_indices(v, vt):
@@ -30,67 +33,65 @@ def end_indices(v, vt):
 
 
 def events(v, vt):
-
     i_start = start_indices(v, vt)
-    i_end = end_indices(v, vt)
+    i_stop = end_indices(v, vt)
 
-    if i_start[0] > i_end[0]:
-        i_end = i_end[1:]
-    if i_start[-1] < i_end[-1]:
-        i_end[-1] = len(v)-1
+    if i_start[0] > i_stop[0]:
+        i_stop = i_stop[1:]
+    if i_start[-1] < i_stop[-1]:
+        i_stop[-1] = len(v)-1
 
-    return
-
-
-
-@nb.jitclass({'start': nb.float32, 'stop': nb.float32, 'size': nb.float32, 'duration': nb.float32})
-class Event:
-    """Holds information about a single event - an excursion of the signal of interest above the threshold value.
-
-    """
-
-    def __init__(self, start, stop, size):
-        self.start = start
-        self.stop = stop
-        self.size = size
-        self.duration = self.stop-self.start
-        return
+    return i_start, i_stop
 
 
-@nb.jit(nopython=True)
-def next_event(signal, threshold, start):
-    """Return the index of the next rising zero-crossing.
+# @nb.jitclass({'start': nb.float32, 'stop': nb.float32, 'size': nb.float32, 'duration': nb.float32})
+# class Event:
+#     """Holds information about a single event - an excursion of the signal of interest above the threshold value.
 
-    Parameters
-    ----------
-    signal : np.ndarray
-        Signal to search for the next zero-crossing
-    threshold : float
-        Signal threshold; index is returned when signal crosses this value
-    start : int
-        Index where the search is started
+#     """
 
-    Returns
-    -------
-    int
-        Index of the next event. If no event is found, return the .
-    """
-
-    for i in range(start, len(signal)):
-        if signal[i] > threshold:
-            return i
-
-    return len(signal)
+#     def __init__(self, start, stop, size):
+#         self.start = start
+#         self.stop = stop
+#         self.size = size
+#         self.duration = self.stop-self.start
+#         return
 
 
-@nb.jit(nopython=True)
-def event_end(signal, threshold, start):
+# @nb.jit(nopython=True)
+# def next_event(signal, threshold, start):
+#     """Return the index of the next rising zero-crossing.
 
-    for i in range(start, len(signal)):
-        if signal[i] < threshold:
-            return i
+#     Parameters
+#     ----------
+#     signal : np.ndarray
+#         Signal to search for the next zero-crossing
+#     threshold : float
+#         Signal threshold; index is returned when signal crosses this value
+#     start : int
+#         Index where the search is started
 
-    return len(signal)
+#     Returns
+#     -------
+#     int
+#         Index of the next event. If no event is found, return the .
+#     """
+
+#     for i in range(start, len(signal)):
+#         if signal[i] > threshold:
+#             return i
+
+#     return len(signal)
+
+
+# @nb.jit(nopython=True)
+# def event_end(signal, threshold, start):
+
+#     for i in range(start, len(signal)):
+#         if signal[i] < threshold:
+#             return i
+
+#     return len(signal)
 
 
 @nb.jit(nopython=True)
@@ -106,22 +107,22 @@ def event_size(t, signal, threshold, i_start, i_end):
     return np.sum((V*dt)[i_start:i_end])
 
 
-@nb.jit(nopython=True)
-def get_events(t, signal, threshold):
-    """Given an input signal time series and threshold, return a list of Events found in the series."""
+# @nb.jit(nopython=True)
+# def get_events(t, signal, threshold):
+#     """Given an input signal time series and threshold, return a list of Events found in the series."""
 
-    events = []
+#     events = []
 
-    i = 0
-    while i < len(signal):
-        i_start = next_event(signal, threshold, i)
+#     i = 0
+#     while i < len(signal):
+#         i_start = next_event(signal, threshold, i)
 
-        if i_start != len(signal):
-            i_end = event_end(signal, threshold, i_start)
-            size = event_size(t, signal, threshold, i_start, i_end)
-            events.append(Event(t[i_start], t[i_end], size))
-            i = i_end
-        else:
-            i = i_start
+#         if i_start != len(signal):
+#             i_end = event_end(signal, threshold, i_start)
+#             size = event_size(t, signal, threshold, i_start, i_end)
+#             events.append(Event(t[i_start], t[i_end], size))
+#             i = i_end
+#         else:
+#             i = i_start
 
-    return events
+#     return events

@@ -72,7 +72,7 @@ class SimData:
         self.script = script
         self.table = pd.read_csv((self.data_dir / 'table.txt').as_posix(), sep='\t')
         self.threshold = threshold
-        self.events = None
+        self.seismograph = None
         self.wall = None
 
         return
@@ -117,18 +117,18 @@ class SimData:
     def t(self):
         return self.table['# t (s)'].values
 
-    def get_events(self):
-        if self.events is None:
-            self.events = statutil.get_events(self.t(), self.vdw(), self.threshold)
-        return self.events
+    def get_seismograph(self):
+        if self.seismograph is None:
+            self.seismograph = statutil.Seismograph(self.t(), self.vdw(), self.threshold)
+        return self.seismograph
 
-    def get_sizes(self):
-        events = self.get_events()
-        return [event.duration for event in events]
+    def get_avalanche_sizes(self):
+        s = self.get_seismograph()
+        return s.sizes
 
-    def get_durations(self):
-        events = self.get_events()
-        return [event.size for event in events]
+    def get_avalanche_durations(self):
+        s = self.get_seismograph()
+        return s.durations
 
     def get_wall(self):
         if self.wall is None:
@@ -267,17 +267,14 @@ class SimRun:
     def __getitem__(self, i):
         return self.simulations[i]
 
-    def get_events(self):
-        return [sim.get_events() for sim in self.simulations]
+    def get_avalanche_durations(self):
+        return np.array([sim.get_avalanche_durations() for sim in self.simulations])
 
-    def get_durations(self):
-        return np.array([event.duration for event in self.get_events()])
-
-    def get_sizes(self):
-        return np.array([event.size for event in self.get_events()])
+    def get_avalanche_sizes(self):
+        return np.array([sim.get_avalanche_sizes() for sim in self.simulations])
 
     def __repr__(self):
-        return repr(self.metadata)
+        return self.metadata.to_html()
 
     def append_metadata(self, name, search_value):
         """Search through the input scripts for search_value, which is assumed to be a float. Store the found value
@@ -296,6 +293,12 @@ class SimRun:
 
     def avg_dwws(self, t_cutoff=0):
         return [sim.avg_dww(t_cutoff=t_cutoff) for sim in self.simulations]
+
+    def std_vdws(self, t_cutoff=0):
+        return [sim.std_vdw(t_cutoff=t_cutoff) for sim in self.simulations]
+
+    def std_dwws(self, t_cutoff=0):
+        return [sim.std_dww(t_cutoff=t_cutoff) for sim in self.simulations]
 
 
 def get_metadata(root):
