@@ -51,13 +51,8 @@ def event_sizes(t, signal, threshold, i_start, i_stop):
     V = signal - threshold
     dt = np.hstack((np.array([t[1] - t[0]]), (t[2:]-t[:-2])*0.5, np.array([t[-1]-t[-2]])))
 
-    print(i_start.shape[0])
-
     ret = np.empty(i_start.shape[0])
     for i in range(len(i_start)):
         ret[i] = np.sum(V[i_start[i]:i_stop[i]]*dt[i_start[i]:i_stop[i]], axis=0)
-
-        if ret[i] == 0:
-            print(f'i: {i} | V: {V[i_start[i]:i_stop[i]]}')
 
     return ret
