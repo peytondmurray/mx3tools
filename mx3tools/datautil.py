@@ -380,7 +380,7 @@ def find_in_script(script, key):
 
     for line in lines:
         if key in line:
-            return float(line.split(sep=key)[-1].split(sep=' ')[0])
+            return float(line.split(sep=key)[-1].split()[0])
 
     raise ValueError(f'Key {key} not found in script {script}')
 
