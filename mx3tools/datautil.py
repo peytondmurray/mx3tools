@@ -66,6 +66,9 @@ class DomainWall:
         else:
             return self.window_pos
 
+    def __getitem__(self, i):
+        return self.config[i]
+
 
 class SimData:
     """This class holds output data from a single simulation.
