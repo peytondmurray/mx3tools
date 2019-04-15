@@ -1,6 +1,6 @@
 from .ioutil import *
 from .ovftools import *
-from .plotting import *
+from .plotutil import *
 from .simrun import *
 from .statutil import *
 from .datautil import *

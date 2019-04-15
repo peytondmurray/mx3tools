@@ -18,7 +18,7 @@ import tqdm
 
 class DomainWall:
 
-    def __init__(self, root):
+    def __init__(self, root, name='domainwall'):
         self.config = []
         self.time = []
         self.root = root
@@ -26,7 +26,7 @@ class DomainWall:
 
         files = []
         for item in self.root.iterdir():
-            if re.search(r'domainwall\d{6}.csv', item.name) is not None:
+            if re.search(f'{name}'+r'\d{6}.csv', item.name) is not None:
                 files.append(self.root / item.name)
 
         if len(files) == 0:
@@ -139,9 +139,9 @@ class SimData:
         s = self.get_seismograph()
         return s.durations
 
-    def get_wall(self):
+    def get_wall(self, name='domainwall'):
         if self.wall is None:
-            self.wall = DomainWall(self.data_dir)
+            self.wall = DomainWall(self.data_dir, name=name)
         return self.wall
 
     def avg_vdw(self, t_cutoff):
