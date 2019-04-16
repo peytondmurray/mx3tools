@@ -52,7 +52,6 @@ class DomainWall:
                 self.window_pos.append(0)
 
         df = pd.read_csv(fname, sep=',', comment='#')
-        df.sort_values('y', inplace=True)
         self.config.append(df)
         return
 
