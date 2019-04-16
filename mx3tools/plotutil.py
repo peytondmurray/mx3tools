@@ -147,7 +147,7 @@ def plot_hists(axes, data=None, bins=100, **kwargs):
     return
 
 
-def anim_track(ax, *walls, **kwargs):
+def anim_track(ax, *walls, interval=100, maxframes=None, label='time', **kwargs):
 
     lines = []
     for wall in walls:
@@ -171,7 +171,11 @@ def anim_track(ax, *walls, **kwargs):
         for wall, line in zip(walls, lines):
             line.set_xdata(wall[i]['x'])
             line.set_ydata(wall[i]['y'])
-        tag.set_text(f'Time: {wall.time[i]:3.3e}')
+
+        if label == 'time':
+            tag.set_text(f'Time: {wall.time[i]:3.3e}')
+        elif label == 'iteration':
+            tag.set_text(f'Frame: {i}')
         minX = np.min([wall[i]['x'].min() for wall in walls])
         maxX = np.max([wall[i]['x'].max() for wall in walls])
         span = maxX-minX
@@ -181,6 +185,6 @@ def anim_track(ax, *walls, **kwargs):
     return animation.FuncAnimation(ax.get_figure(),
                                    func=anim,
                                    init_func=init,
-                                   frames=kwargs.get('maxframes', len(wall)-2),
-                                   interval=kwargs.get('interval', 100),
+                                   frames=len(wall)-2 if maxframes is None else maxframes,
+                                   interval=interval,
                                    blit=False)

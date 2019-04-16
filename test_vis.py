@@ -9,5 +9,6 @@ import mx3tools.datautil as datautil
 
 # ani = data[0].anim(ax)
 
-data = datautil.SimRun('/home/pdmurray/Desktop/Workspace/dmidw/coni_ramping/test4/')
-sizes = data.get_avalanche_sizes()
+data = datautil.SimRun('/home/pdmurray/Desktop/Workspace/dmidw/coni_ramping/test8/')
+wall = data[0].get_wall()
+# sizes = data.get_avalanche_sizes()
