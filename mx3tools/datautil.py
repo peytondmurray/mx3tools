@@ -78,7 +78,7 @@ class SimData:
 
         self.data_dir = ioutil.pathize(data_dir)
         self.script = script
-        self.table = pd.read_csv((self.data_dir / 'table.txt').as_posix(), sep='\t')
+        self.table = pd.read_csv((self.data_dir / 'table.txt').as_posix(), sep='\t').drop_duplicates('# t (s)')
         self.threshold = threshold
         self.seismograph = None
         self.wall = None
@@ -155,6 +155,12 @@ class SimData:
     def std_dww(self, t_cutoff):
         return np.std(self.dww()[self.t() > t_cutoff])
 
+    def avg_dt(self):
+        return np.mean(self.dt())
+
+    def dt(self):
+        return np.diff(self.t())
+
     def precession_freq(self):
         tf, vf = aps.LombScargle(self.t(), self.vdw()).autopower()
         peaks, _ = scs.find_peaks(vf, height=np.max(vf)*0.9)
@@ -182,106 +188,6 @@ class SimData:
 
         return Bw(B, self.t()[-1], alpha)
 
-    def anim(self, ax, track=False, **kwargs):
-
-        wall = self.get_wall()
-
-        line = ax.plot(wall.config[0]['x'], wall.config[0]['y'], color=kwargs.get('color', 'k'), linestyle='-')[0]
-        tag = ax.text(kwargs.get('textx', 0.1), kwargs.get('texty', 0.1), '', transform=ax.transAxes)
-
-        def init():
-            ax.plot(wall.config[0]['x'], wall.config[0]['y'], color=kwargs.get('color', 'k'), linestyle='-')
-            ax.plot(wall.config[0]['x'], wall.config[0]['y'], color=kwargs.get('color', 'k'), linestyle='-')
-            tag.set_text('')
-            return  # line, tag
-
-        if track:
-
-            def anim(i):
-                xlim = kwargs.get('xlim', (0, 1024e-9))
-                line.set_xdata(wall.config[i]['x'])
-                line.set_ydata(wall.config[i]['y'])
-                tag.set_text(f'Time: {wall.time[i]:3.3e}')
-                ax.set_xlim(np.array(xlim)-np.mean(xlim)+np.mean(wall.config[i]['x']))
-                return  # line, tag
-
-        else:
-            ax.set_xlim(kwargs.get('xlim', (0, np.max(wall.get_window_pos()))))
-
-            def anim(i):
-                line.set_xdata(wall.config[i]['x'])
-                line.set_ydata(wall.config[i]['y'])
-                tag.set_text(f'Time: {wall.time[i]:3.3e}')
-                return  # line, tag
-
-        return animation.FuncAnimation(ax.get_figure(),
-                                       func=anim,
-                                       init_func=init,
-                                       frames=kwargs.get('maxframes', len(wall)-2),
-                                       interval=kwargs.get('interval', 100),
-                                       blit=False)
-
-    def anim_burst(self, ax, cmap, track=False, **kwargs):
-
-        wall = self.get_wall()
-
-        if isinstance(cmap, str):
-            cmap = cm.get_cmap(cmap)
-
-        tag = ax.text(kwargs.get('textx', 0.1), kwargs.get('texty', 0.1), '', transform=ax.transAxes)
-
-        def init():
-            ax.plot(wall.config[0]['x'], wall.config[0]['y'], color=kwargs.get('color', 'k'), linestyle='-')
-            ax.plot(wall.config[0]['x'], wall.config[0]['y'], color=kwargs.get('color', 'k'), linestyle='-')
-            tag.set_text('')
-            return
-
-        if track:
-            xlim = kwargs.get('xlim', (0, 1024e-9))
-
-            def anim(i):
-                ax.plot(wall.config[i+1]['x'], wall.config[i+1]['y'], color=kwargs.get('color', 'k'), linestyle='-')
-                ax.fill_betweenx(wall.config[i]['y'],
-                                 wall.config[i]['x'],
-                                 wall.config[i+1]['x'],
-                                 facecolor=cmap(wall.time[i]/wall.time[-1]))
-                tag.set_text(f'Time: {wall.time[i+1]:3.3e}')
-                ax.set_xlim(np.array(xlim)-np.mean(xlim)+np.mean(wall.config[i]['x']))
-                return
-        else:
-            ax.set_xlim(kwargs.get('xlim', (0, np.max(wall.get_window_pos()))))
-
-            def anim(i):
-                ax.plot(wall.config[i+1]['x'], wall.config[i+1]['y'], color=kwargs.get('color', 'k'), linestyle='-')
-                ax.fill_betweenx(wall.config[i]['y'],
-                                 wall.config[i]['x'],
-                                 wall.config[i+1]['x'],
-                                 facecolor=cmap(wall.time[i]/wall.time[-1]))
-                tag.set_text(f'Time: {wall.time[i+1]:3.3e}')
-                return
-
-        return animation.FuncAnimation(ax.get_figure(),
-                                       func=anim,
-                                       init_func=init,
-                                       frames=len(wall)-2,
-                                       interval=kwargs.get('interval', 100))
-
-    def burst(self, ax, cmap, **kwargs):
-
-        wall = self.get_wall()
-
-        if isinstance(cmap, str):
-            cmap = cm.get_cmap(cmap)
-
-        # ax.plot(wall.config[0]['x'], wall.config[0]['y'], kwargs.get('color', 'k'), linestyle='-')
-
-        for i in range(1, len(wall)):
-            # ax.plot(wall.config[i]['x'], wall.config[i]['y'], kwargs.get('color', 'k'), linestyle='-')
-            ax.fill_betweenx(wall.config[i]['y'], wall.config[i-1]['x'], wall.config[i]
-                             ['x'], facecolor=cmap(wall.time[i]/wall.time[-1]), edgecolor='k')
-
-        return
-
 
 class SimRun:
     """Simulations are run in batches. This class holds a set of simulation outputs as SimData objects.
@@ -293,9 +199,20 @@ class SimRun:
         self.root = pathlib.Path(root)
 
         if (self.root / 'slurm_map.csv').is_file():
-            self.metadata = pd.read_csv((self.root / 'slurm_map.csv').as_posix(), sep=',')
-            scripts = [(self.root / script).as_posix() for script in self.metadata['script'].values]
-            self.metadata['script'] = scripts
+
+            # Get the metadata from the slurm map
+            _metadata = pd.read_csv((self.root / 'slurm_map.csv').as_posix(), sep=',')
+            scripts = [(self.root / script).as_posix() for script in _metadata['script'].values]
+            _metadata['script'] = scripts
+
+            # Ignore any entries which either are missing the input script or the output directory
+            _valid_indices = []
+            for i in range(len(_metadata)):
+                _script = pathlib.Path(_metadata.iloc[i]['script'])
+                if _script.exists() and (self.root / f'{_script.stem}.out').exists():
+                    _valid_indices.append(i)
+
+            self.metadata = _metadata.iloc[_valid_indices]
 
         else:
             self.metadata = get_metadata(self.root)
@@ -350,6 +267,12 @@ class SimRun:
 
     def std_dwws(self, t_cutoff=0):
         return [sim.std_dww(t_cutoff=t_cutoff) for sim in self.simulations]
+
+    def avg_dt(self):
+        return np.mean([sim.avg_dt() for sim in self.simulations])
+
+    def dt(self):
+        return [sim.dt() for sim in self.simulations]
 
     def __len__(self):
         return len(self.simulations)

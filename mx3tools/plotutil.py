@@ -3,7 +3,7 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-import matplotlib.cm as mplcm
+import matplotlib.cm as cm
 import matplotlib.collections as mplcollections
 import matplotlib.animation as animation
 import matplotlib.patches as mplp
@@ -103,7 +103,7 @@ def color_wheel(fig, cmap='twilight'):
     return
 
 
-def plot_hists(axes, data=None, bins=100, **kwargs):
+def plot_hists(axes, data=None, bins=100, duration_units='ns', size_units='nm', **kwargs):
 
     if isinstance(data, datautil.SimRun) or isinstance(data, datautil.SimData):
         sizes = data.get_avalanche_sizes()
@@ -116,6 +116,24 @@ def plot_hists(axes, data=None, bins=100, **kwargs):
 
     sizes_hist, _ = np.histogram(sizes, bins=log_size_bins)
     durations_hist, _ = np.histogram(durations, bins=log_duration_bins)
+
+    if duration_units == 'ns':
+        log_duration_bins /= 1e-9
+    elif duration_units == 'dt':
+        log_duration_bins /= data.avg_dt()
+    elif duration_units == 'min_dt':
+        log_duration_bins /= np.min(np.hstack(data.dt()))
+    elif duration_units == 's':
+        pass
+    else:
+        raise NotImplementedError
+
+    if size_units == 'nm':
+        log_size_bins /= 1e-9
+    elif size_units == 'm':
+        pass
+    else:
+        raise NotImplementedError
 
     # axes[0].plot(log_size_bins[:-1], sizes_hist, '-or')
     # axes[1].plot(log_duration_bins[:-1], durations_hist, '-or')
@@ -139,8 +157,8 @@ def plot_hists(axes, data=None, bins=100, **kwargs):
     axes[1].set_xscale('log')
     axes[1].set_yscale('log')
 
-    axes[0].set_xlabel('Size')
-    axes[1].set_xlabel('Duration')
+    axes[0].set_xlabel(f'Size ({size_units})')
+    axes[1].set_xlabel(f'Duration ({duration_units})')
     axes[0].set_ylabel('Frequency')
     axes[1].set_ylabel('Frequency')
 
@@ -191,18 +209,130 @@ def anim_track(ax, *walls, interval=100, maxframes=None, label='time', **kwargs)
 
 
 def vdw(ax, data, Dind='', size=18, show_D=True, **kwargs):
-    ax.plot(data.t(), data.vdw(), **kwargs, label='$V_{DW}$')
+    ax.plot(data.t()/1e-9, data.vdw(), **kwargs, label='$V_{DW}$')
     if show_D:
-        ax.text(0.2, 0.5, f'$D = {Dind}'+' J/m^2$', transform=ax.transAxes, size=size)
-    ax.set_ylabel(r'$V_{DW} (\text{m})$')
-    ax.set_xlabel(r'$t$ (s)')
+        ax.text(0.2, 0.5, f'$D = {Dind}$'+' J/m$^2$', transform=ax.transAxes, size=size)
+    ax.set_ylabel(r'$V_{DW}$ (m/s)')
+    ax.set_xlabel(r'$t$ (ns)')
     return
 
 
 def axyz(ax, data, ls_axy='-', ls_az='-', c_axy='r', c_az='dodgerblue'):
 
-    ax.plot(data.t(), data.Axy(), linestyle=ls_axy, color=c_axy, label=r'$A_{xy}$')
-    ax.plot(data.t(), data.Az(), linestyle=ls_az, color=c_az, label=r'$A_z$')
+    ax.plot(data.t()/1e-9, data.Axy(), linestyle=ls_axy, color=c_axy, label=r'$A_{xy}$')
+    ax.plot(data.t()/1e-9, data.Az(), linestyle=ls_az, color=c_az, label=r'$A_z$')
     ax.set_ylabel(r'$A$ (rad/s)')
-    ax.set_xlabel(r'$t$ (s)')
+    ax.set_xlabel(r'$t$ (ns)')
     return
+
+
+def burst(ax, data, cmap, **kwargs):
+
+    wall = data.get_wall()
+
+    if isinstance(cmap, str):
+        cmap = cm.get_cmap(cmap)
+
+    # ax.plot(wall.config[0]['x'], wall.config[0]['y'], kwargs.get('color', 'k'), linestyle='-')
+
+    for i in range(1, len(wall)):
+        # ax.plot(wall.config[i]['x'], wall.config[i]['y'], kwargs.get('color', 'k'), linestyle='-')
+        ax.fill_betweenx(wall.config[i]['y'],
+                         wall.config[i-1]['x'],
+                         wall.config[i]['x'],
+                         facecolor=cmap(wall.time[i]/wall.time[-1]),
+                         edgecolor='k')
+
+    return
+
+
+def anim(ax, data, track=False, **kwargs):
+
+    if not isinstance(data, datautil.SimData):
+        raise NotImplementedError
+
+    wall = data.get_wall()
+
+    line = ax.plot(wall.config[0]['x'], wall.config[0]['y'], color=kwargs.get('color', 'k'), linestyle='-')[0]
+    tag = ax.text(kwargs.get('textx', 0.1), kwargs.get('texty', 0.1), '', transform=ax.transAxes)
+
+    def init():
+        ax.plot(wall.config[0]['x'], wall.config[0]['y'], color=kwargs.get('color', 'k'), linestyle='-')
+        ax.plot(wall.config[0]['x'], wall.config[0]['y'], color=kwargs.get('color', 'k'), linestyle='-')
+        tag.set_text('')
+        return
+
+    if track:
+
+        def anim(i):
+            xlim = kwargs.get('xlim', (0, 1024e-9))
+            line.set_xdata(wall.config[i]['x'])
+            line.set_ydata(wall.config[i]['y'])
+            tag.set_text(f'Time: {wall.time[i]:3.3e}')
+            ax.set_xlim(np.array(xlim)-np.mean(xlim)+np.mean(wall.config[i]['x']))
+            return
+
+    else:
+        ax.set_xlim(kwargs.get('xlim', (0, np.max(wall.get_window_pos()))))
+
+        def anim(i):
+            line.set_xdata(wall.config[i]['x'])
+            line.set_ydata(wall.config[i]['y'])
+            tag.set_text(f'Time: {wall.time[i]:3.3e}')
+            return
+
+    return animation.FuncAnimation(ax.get_figure(),
+                                   func=anim,
+                                   init_func=init,
+                                   frames=kwargs.get('maxframes', len(wall)-2),
+                                   interval=kwargs.get('interval', 100),
+                                   blit=False)
+
+
+def anim_burst(ax, data, cmap, track=False, **kwargs):
+
+    if not isinstance(data, datautil.SimData):
+        raise NotImplementedError
+
+    wall = data.get_wall()
+
+    if isinstance(cmap, str):
+        cmap = cm.get_cmap(cmap)
+
+    tag = ax.text(kwargs.get('textx', 0.1), kwargs.get('texty', 0.1), '', transform=ax.transAxes)
+
+    def init():
+        ax.plot(wall.config[0]['x'], wall.config[0]['y'], color=kwargs.get('color', 'k'), linestyle='-')
+        ax.plot(wall.config[0]['x'], wall.config[0]['y'], color=kwargs.get('color', 'k'), linestyle='-')
+        tag.set_text('')
+        return
+
+    if track:
+        xlim = kwargs.get('xlim', (0, 1024e-9))
+
+        def anim(i):
+            ax.plot(wall.config[i+1]['x'], wall.config[i+1]['y'], color=kwargs.get('color', 'k'), linestyle='-')
+            ax.fill_betweenx(wall.config[i]['y'],
+                             wall.config[i]['x'],
+                             wall.config[i+1]['x'],
+                             facecolor=cmap(wall.time[i]/wall.time[-1]))
+            tag.set_text(f'Time: {wall.time[i+1]:3.3e}')
+            ax.set_xlim(np.array(xlim)-np.mean(xlim)+np.mean(wall.config[i]['x']))
+            return
+    else:
+        ax.set_xlim(kwargs.get('xlim', (0, np.max(wall.get_window_pos()))))
+
+        def anim(i):
+            ax.plot(wall.config[i+1]['x'], wall.config[i+1]['y'], color=kwargs.get('color', 'k'), linestyle='-')
+            ax.fill_betweenx(wall.config[i]['y'],
+                             wall.config[i]['x'],
+                             wall.config[i+1]['x'],
+                             facecolor=cmap(wall.time[i]/wall.time[-1]))
+            tag.set_text(f'Time: {wall.time[i+1]:3.3e}')
+            return
+
+    return animation.FuncAnimation(ax.get_figure(),
+                                   func=anim,
+                                   init_func=init,
+                                   frames=len(wall)-2,
+                                   interval=kwargs.get('interval', 100))
