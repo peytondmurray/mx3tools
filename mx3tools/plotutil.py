@@ -188,3 +188,21 @@ def anim_track(ax, *walls, interval=100, maxframes=None, label='time', **kwargs)
                                    frames=len(wall)-2 if maxframes is None else maxframes,
                                    interval=interval,
                                    blit=False)
+
+
+def vdw(ax, data, Dind='', size=18, show_D=True, **kwargs):
+    ax.plot(data.t(), data.vdw(), **kwargs, label='$V_{DW}$')
+    if show_D:
+        ax.text(0.2, 0.5, f'$D = {Dind}'+' J/m^2$', transform=ax.transAxes, size=size)
+    ax.set_ylabel(r'$V_{DW} (\text{m})$')
+    ax.set_xlabel(r'$t$ (s)')
+    return
+
+
+def axyz(ax, data, ls_axy='-', ls_az='-', c_axy='r', c_az='dodgerblue'):
+
+    ax.plot(data.t(), data.Axy(), linestyle=ls_axy, color=c_axy, label=r'$A_{xy}$')
+    ax.plot(data.t(), data.Az(), linestyle=ls_az, color=c_az, label=r'$A_z$')
+    ax.set_ylabel(r'$A$ (rad/s)')
+    ax.set_xlabel(r'$t$ (s)')
+    return
