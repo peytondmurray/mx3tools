@@ -228,6 +228,8 @@ def axyz(ax, data, ls_axy='-', ls_az='-', c_axy='r', c_az='dodgerblue'):
 
 def burst(ax, data, cmap, **kwargs):
 
+    ax.set_aspect('equal')
+
     wall = data.get_wall()
 
     if isinstance(cmap, str):
@@ -251,6 +253,7 @@ def anim(ax, data, track=False, **kwargs):
     if not isinstance(data, datautil.SimData):
         raise NotImplementedError
 
+    ax.set_aspect('equal')
     wall = data.get_wall()
 
     line = ax.plot(wall.config[0]['x'], wall.config[0]['y'], color=kwargs.get('color', 'k'), linestyle='-')[0]
@@ -294,6 +297,7 @@ def anim_burst(ax, data, cmap, track=False, **kwargs):
     if not isinstance(data, datautil.SimData):
         raise NotImplementedError
 
+    ax.set_aspect('equal')
     wall = data.get_wall()
 
     if isinstance(cmap, str):
