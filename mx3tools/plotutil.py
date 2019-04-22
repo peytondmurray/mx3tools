@@ -48,7 +48,7 @@ def plot_dw_config(data, ax=None, cmap='twilight', marker='cell', dx=2e-9):
 
     if ax is None:
         _, ax = plt.subplots()
-    cmap = mplcm.get_cmap(cmap)
+    cmap = cm.get_cmap(cmap)
     colors = []
 
     data = data.sort_values('y')
@@ -232,18 +232,24 @@ def burst(ax, data, cmap, **kwargs):
 
     wall = data.get_wall()
 
-    if isinstance(cmap, str):
+    if cmap is None:
+        segments = []
+        for i in range(len(wall)):
+            # ax.plot(wall.config[i]['x'], wall.config[i]['y'], kwargs.get('color', 'k'), linestyle='-')
+            segments += list(zip(wall.config[i]['x'], wall.config[i]['y']))
+
+        collection = mplcollections.LineCollection(segments=segments, colors=kwargs.get('color', 'k'), linestyles='-')
+        ax.add_collection(collection)
+
+    elif isinstance(cmap, str):
         cmap = cm.get_cmap(cmap)
 
-    # ax.plot(wall.config[0]['x'], wall.config[0]['y'], kwargs.get('color', 'k'), linestyle='-')
-
-    for i in range(1, len(wall)):
-        # ax.plot(wall.config[i]['x'], wall.config[i]['y'], kwargs.get('color', 'k'), linestyle='-')
-        ax.fill_betweenx(wall.config[i]['y'],
-                         wall.config[i-1]['x'],
-                         wall.config[i]['x'],
-                         facecolor=cmap(wall.time[i]/wall.time[-1]),
-                         edgecolor='k')
+        for i in range(1, len(wall)):
+            ax.fill_betweenx(wall.config[i]['y'],
+                             wall.config[i-1]['x'],
+                             wall.config[i]['x'],
+                             facecolor=cmap(wall.time[i]/wall.time[-1]),
+                             edgecolor='k')
 
     return
 
