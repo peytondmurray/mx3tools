@@ -351,6 +351,9 @@ class SimRun:
     def std_dwws(self, t_cutoff=0):
         return [sim.std_dww(t_cutoff=t_cutoff) for sim in self.simulations]
 
+    def __len__(self):
+        return len(self.simulations)
+
 
 def get_metadata(root):
 
