@@ -130,3 +130,22 @@ def _event_sizes(t, v, vt, i_start, i_stop):
         ret[i] = np.sum(V[i_start[i]:i_stop[i]]*dt[i_start[i]:i_stop[i]], axis=0)
 
     return ret
+
+
+def bin_avg(t, s, nbins=50):
+
+    if isinstance(t, list):
+        t = np.hstack(t)
+    if isinstance(s, list):
+        s = np.hstack(s)
+
+    f_t = t.flatten()
+    f_s = s.flatten()
+
+    t_bin = np.linspace(np.min(f_t), np.max(f_t), nbins+1)
+    s_bin = np.zeros(nbins+1)
+
+    for i in range(nbins):
+        s_bin[i] = np.mean(f_s[np.nonzero(np.logical_and(t_bin[i] < f_t, f_t < t_bin[i+1]))])
+
+    return t_bin, s_bin

@@ -188,6 +188,23 @@ class SimData:
 
         return Bw(B, self.t()[-1], alpha)
 
+    def events_by_duration(self, duration, tol):
+        """Get V(t) of all events with durations falling in the interval [duration-tol, duration+tol]"""
+
+        event_lengths = self.get_seismograph().durations
+        i_start = self.get_seismograph().istart
+        i_stop = self.get_seismograph().istop
+
+        signals = []
+        times = []
+
+        for e_length, start, stop in zip(event_lengths, i_start, i_stop):
+            if duration-tol < e_length < duration+tol:
+                signals.append(self.vdw()[start:stop])
+                times.append(np.linspace(0, e_length, stop-start))
+
+        return times, signals
+
 
 class SimRun:
     """Simulations are run in batches. This class holds a set of simulation outputs as SimData objects.
@@ -276,6 +293,17 @@ class SimRun:
 
     def __len__(self):
         return len(self.simulations)
+
+    def events_by_duration(self, duration, tol):
+        times = []
+        signals = []
+
+        for sim in self.simulations:
+            _t, _s = sim.events_by_duration(duration, tol)
+            times += _t
+            signals += _s
+
+        return times, signals
 
 
 def get_metadata(root):
