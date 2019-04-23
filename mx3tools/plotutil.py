@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import matplotlib.collections as mplcollections
 import matplotlib.animation as animation
-import matplotlib.patches as mplp
+import matplotlib.patches as patches
 import matplotlib.colors as mplcolors
 from . import datautil
 
@@ -68,11 +68,11 @@ def plot_dw_config(data, ax=None, cmap='twilight', marker='cell', dx=2e-9):
     elif marker == 'cell':
         for i in range(len(data)-1):
             color = cmap(np.arctan2(data.iloc[i]['my'], data.iloc[i]['mx'])/(2*np.pi) + 0.5)
-            ax.add_patch(mplp.Rectangle((data.iloc[i]['x'], data.iloc[i]['y']),
-                                        dx,
-                                        dx,
-                                        edgecolor='none',
-                                        facecolor=color))
+            ax.add_patch(patches.Rectangle((data.iloc[i]['x'], data.iloc[i]['y']),
+                                           dx,
+                                           dx,
+                                           edgecolor='none',
+                                           facecolor=color))
 
     ax.set_xlim(0, 0.25*data['y'].max())
     ax.set_ylim(0, data['y'].max())
@@ -226,7 +226,7 @@ def axyz(ax, data, ls_axy='-', ls_az='-', c_axy='r', c_az='dodgerblue'):
     return
 
 
-def burst(ax, data, cmap, **kwargs):
+def burst(ax, data, cmap='viridis', **kwargs):
 
     ax.set_aspect('equal')
 
@@ -244,12 +244,27 @@ def burst(ax, data, cmap, **kwargs):
     elif isinstance(cmap, str):
         cmap = cm.get_cmap(cmap)
 
+        polygons = []
+        segments = []
         for i in range(1, len(wall)):
-            ax.fill_betweenx(wall.config[i]['y'],
-                             wall.config[i-1]['x'],
-                             wall.config[i]['x'],
-                             facecolor=cmap(wall.time[i]/wall.time[-1]),
-                             edgecolor='k')
+            old_wall = np.array(sorted(zip(wall.config[i-1]['x'].values, wall.config[i-1]['y'].values),
+                                       key=lambda a: a[1]))
+            new_wall = np.flipud(np.array(sorted(zip(wall.config[i]['x'].values, wall.config[i]['y'].values),
+                                                 key=lambda a: a[1])))
+
+            polygon_edge = np.vstack((old_wall, new_wall))
+            polygons.append(patches.Polygon(polygon_edge))
+
+            # Highlight the edge with a faint black outline
+            plt.plot(polygon_edge[:, 0], polygon_edge[:, 1], '-k', alpha=0.3, linewidth=1)
+            segments.append(polygon_edge)
+
+        polygon_collection = mplcollections.PatchCollection(polygons[::-1], edgecolors='',
+                                                            facecolors=cmap(np.linspace(0, 1, len(polygons))))
+        line_collection = mplcollections.LineCollection(segments=segments, colors='k', linewidths=1, alpha=0.3)
+
+        ax.add_collection(polygon_collection)
+        ax.add_collection(line_collection)
 
     return
 

@@ -146,6 +146,7 @@ def bin_avg(t, s, nbins=50):
     s_bin = np.zeros(nbins+1)
 
     for i in range(nbins):
-        s_bin[i] = np.mean(f_s[np.nonzero(np.logical_and(t_bin[i] < f_t, f_t < t_bin[i+1]))])
+        in_bin_i = np.nonzero(np.logical_and(t_bin[i] <= f_t, f_t < t_bin[i+1]))
+        s_bin[i] = np.mean(f_s[in_bin_i])
 
     return t_bin, s_bin
