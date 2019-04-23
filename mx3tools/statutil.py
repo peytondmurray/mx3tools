@@ -132,21 +132,53 @@ def _event_sizes(t, v, vt, i_start, i_stop):
     return ret
 
 
-def bin_avg(t, s, nbins=50):
+def bin_avg(t, s, nbins=None):
+    """Bin and average the input signals.
+
+    Parameters
+    ----------
+    t : list or np.ndarray
+        Can be
+
+        1. A list of np.ndarrays, each containing a set of times (usually corresponding to measurements durng
+           an avalanche)
+        2. A 1D np.ndarray containing times
+    s : list or np.ndarray
+        Values of the signal measured at times t. Must be same shape as t.
+    nbins : int or None
+        Number of bins to use. If None, then a sensible number is chosen: t_binned = np.arange(min(t), max(t), mean(dt))
+
+    Returns
+    -------
+    t_bin : np.ndarray
+        Binned timesteps
+    s_bin : np.ndarray
+        Average value of the signal at each timestep
+    """
 
     if isinstance(t, list):
-        t = np.hstack(t)
+        f_t = np.hstack(t).flatten()
+    else:
+        f_t = t.flatten()
+
     if isinstance(s, list):
-        s = np.hstack(s)
+        f_s = np.hstack(s).flatten()
+    else:
+        f_s = s.flatten()
 
-    f_t = t.flatten()
-    f_s = s.flatten()
+    if nbins is None:
+        dt = np.mean([np.mean(np.diff(_t)) for _t in t])
+        t_bin = np.arange(np.min(f_t), np.max(f_t), dt)
+        s_bin = np.zeros(t_bin.shape)
+    else:
+        t_bin = np.linspace(np.min(f_t), np.max(f_t), nbins+1)
+        s_bin = np.zeros(nbins+1)
 
-    t_bin = np.linspace(np.min(f_t), np.max(f_t), nbins+1)
-    s_bin = np.zeros(nbins+1)
-
-    for i in range(nbins):
+    for i in range(t_bin.shape[0]-2):
         in_bin_i = np.nonzero(np.logical_and(t_bin[i] <= f_t, f_t < t_bin[i+1]))
         s_bin[i] = np.mean(f_s[in_bin_i])
+
+    in_last_bin = np.nonzero(np.logical_and(t_bin[-2] <= f_t, f_t <= t_bin[-1]))
+    s_bin[-1] = np.mean(f_s[in_last_bin])
 
     return t_bin, s_bin
