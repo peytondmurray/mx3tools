@@ -10,6 +10,7 @@ import matplotlib.patches as patches
 import matplotlib.colors as mplcolors
 from . import datautil
 from . import util
+from . import statutil
 
 
 def plot_dw(data, ax=None, **kwargs):
@@ -104,25 +105,80 @@ def color_wheel(fig, cmap='twilight'):
     return
 
 
-def plot_hists(axes, tbins, thist, sbins, shist, tunits='ns', sunits='nm', **kwargs):
-    """Plot the t and s histograms.
+def plot_hists(axes, data, bins=40, tunits='ns', sunits='nm', **kwargs):
+    """Plot the t and s histograms. See plot_s_hist and plot_t_hist docstrings for more info.
 
     Parameters
     ----------
     axes : axes
         Tuple of axes on which to plot the t and s histograms, respectively
-    tbins : np.ndarray
-        The edges of the t histogram bins, including the rightmost edge; len(tbins) = len(thist) + 1
-    thist : np.ndarray
-        The t histogram; thist[i] gives the value of the histogram between tbins[i] and tbins[i+1]
+    data : mx3tools.SimData or mx3tools.SimRun
+        Data from which the histograms are generated
+    """
+
+    tbins, thist, sbins, shist = statutil.event_hists(data, bins)
+    plot_t_hist(axes[0], tbins, thist, tunits=tunits, sunits=sunits, **kwargs)
+    plot_s_hist(axes[1], sbins, shist, tunits=tunits, sunits=sunits, **kwargs)
+    return
+
+
+def plot_s_hist(ax, sbins, shist, sunits='nm', **kwargs):
+    """Plot the s histogram.
+
+    Parameters
+    ----------
+    ax : Axes
+        Axes on which to plot the histogram
     sbins : np.ndarray
         The edges of the s histogram bins, including the rightmost edge; len(sbins) = len(shist) + 1
     shist : np.ndarray
         The s histogram; shist[i] gives the value of the histogram between sbins[i] and sbins[i+1]
-    tunits : str or float
-        Units to be used for plotting the t values: 'ns' [default] or 's', or pass your own float
     sunits : str, optional
         Units to be used for plotting the s values: 'nm' [default] or 'm', or pass your own float
+    """
+
+    if isinstance(sunits, str):
+        if sunits == 'nm':
+            sbins /= 1e-9
+        elif sunits == 'm':
+            pass
+        else:
+            raise NotImplementedError
+    elif isinstance(sunits, float):
+        sbins /= sunits
+    else:
+        raise NotImplementedError
+
+    # Make a shallow copy, so that when we pop from the kwargs we don't modify them (dicts are mutable, so we wouldn't)
+    # be able to use the same kwargs in any other function afterwards if we don't copy here
+    kwargs = kwargs.copy()
+    fc = kwargs.pop('facecolor', 'dodgerblue')
+    ec = kwargs.pop('edgecolor', 'dodgerblue')
+
+    ax.fill_between(sbins[:-1], shist, facecolor=fc, step='post', edgecolor=ec)
+
+    ax.set_xscale('log')
+    ax.set_yscale('log')
+
+    ax.set_xlabel(f'Size ({sunits})')
+    ax.set_ylabel('Frequency')
+
+    return
+
+
+def plot_t_hist(ax, tbins, thist, tunits='ns', **kwargs):
+    """Plot the t histogram.
+
+    Parameters
+    ----------
+    ax : Axes
+        Axes on which to plot the histogram
+    tbins : np.ndarray
+        The edges of the t histogram bins, including the rightmost edge; len(tbins) = len(thist) + 1
+    thist : np.ndarray
+        The t histogram; thist[i] gives the value of the histogram between tbins[i] and tbins[i+1]
+    tunits : str or float
+        Units to be used for plotting the t values: 'ns' [default] or 's', or pass your own float
     """
 
     if isinstance(tunits, str):
@@ -137,45 +193,18 @@ def plot_hists(axes, tbins, thist, sbins, shist, tunits='ns', sunits='nm', **kwa
     else:
         raise NotImplementedError
 
-    if isinstance(sunits, str):
-        if sunits == 'nm':
-            sbins /= 1e-9
-        elif sunits == 'm':
-            pass
-        else:
-            raise NotImplementedError
-    elif isinstance(sunits, float):
-        sbins /= sunits
-    else:
-        raise NotImplementedError
+    # Make a shallow copy, so that when we pop from the kwargs we don't modify them (dicts are mutable, so we wouldn't)
+    # be able to use the same kwargs in any other function afterwards if we don't copy here
+    kwargs = kwargs.copy()
+    fc = kwargs.pop('facecolor', 'dodgerblue')
+    ec = kwargs.pop('edgecolor', 'dodgerblue')
 
-    # axes[0].plot(sbins[:-1], sizes_hist, '-or')
-    # axes[1].plot(tbins[:-1], durations_hist, '-or')
+    ax.fill_between(tbins[:-1], thist, facecolor=fc, step='post', edgecolor=ec, **kwargs)
+    ax.set_xscale('log')
+    ax.set_yscale('log')
 
-    # axes[0].step(sbins[:-1], sizes_hist, color=kwargs.get('color', 'r'), where='post')
-    # axes[1].step(tbins[:-1], durations_hist, color=kwargs.get('color', 'r'), where='post')
-
-    axes[0].fill_between(sbins[:-1],
-                         shist,
-                         facecolor=kwargs.get('facecolor', 'dodgerblue'),
-                         step='post',
-                         edgecolor=kwargs.get('edgecolor', 'dodgerblue'))
-    axes[1].fill_between(tbins[:-1],
-                         thist,
-                         facecolor=kwargs.get('facecolor', 'dodgerblue'),
-                         step='post',
-                         edgecolor=kwargs.get('edgecolor', 'dodgerblue'))
-
-    axes[0].set_xscale('log')
-    axes[0].set_yscale('log')
-    axes[1].set_xscale('log')
-    axes[1].set_yscale('log')
-
-    axes[0].set_xlabel(f'Size ({sunits})')
-    axes[1].set_xlabel(f'Duration ({tunits})')
-    axes[0].set_ylabel('Frequency')
-    axes[1].set_ylabel('Frequency')
-
+    ax.set_xlabel(f'Duration ({tunits})')
+    ax.set_ylabel('Frequency')
     return
 
 
