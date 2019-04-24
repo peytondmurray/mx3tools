@@ -9,6 +9,7 @@ import matplotlib.animation as animation
 import matplotlib.patches as patches
 import matplotlib.colors as mplcolors
 from . import datautil
+from . import util
 
 
 def plot_dw(data, ax=None, **kwargs):
@@ -103,51 +104,64 @@ def color_wheel(fig, cmap='twilight'):
     return
 
 
-def plot_hists(axes, data=None, bins=100, duration_units='ns', size_units='nm', **kwargs):
+def plot_hists(axes, tbins, thist, sbins, shist, tunits='ns', sunits='nm', **kwargs):
+    """Plot the t and s histograms.
 
-    if isinstance(data, datautil.SimRun) or isinstance(data, datautil.SimData):
-        sizes = data.get_avalanche_sizes()
-        durations = data.get_avalanche_durations()
+    Parameters
+    ----------
+    axes : axes
+        Tuple of axes on which to plot the t and s histograms, respectively
+    tbins : np.ndarray
+        The edges of the t histogram bins, including the rightmost edge; len(tbins) = len(thist) + 1
+    thist : np.ndarray
+        The t histogram; thist[i] gives the value of the histogram between tbins[i] and tbins[i+1]
+    sbins : np.ndarray
+        The edges of the s histogram bins, including the rightmost edge; len(sbins) = len(shist) + 1
+    shist : np.ndarray
+        The s histogram; shist[i] gives the value of the histogram between sbins[i] and sbins[i+1]
+    tunits : str or float
+        Units to be used for plotting the t values: 'ns' [default] or 's', or pass your own float
+    sunits : str, optional
+        Units to be used for plotting the s values: 'nm' [default] or 'm', or pass your own float
+    """
+
+    if isinstance(tunits, str):
+        if tunits == 'ns':
+            tbins /= 1e-9
+        elif tunits == 's':
+            pass
+        else:
+            raise NotImplementedError
+    elif isinstance(tunits, float):
+        tbins /= tunits
     else:
         raise NotImplementedError
 
-    log_size_bins = np.logspace(np.log10(np.min(sizes)), np.log10(np.max(sizes)), bins)
-    log_duration_bins = np.logspace(np.log10(np.min(durations)), np.log10(np.max(durations)), bins)
-
-    sizes_hist, _ = np.histogram(sizes, bins=log_size_bins)
-    durations_hist, _ = np.histogram(durations, bins=log_duration_bins)
-
-    if duration_units == 'ns':
-        log_duration_bins /= 1e-9
-    elif duration_units == 'dt':
-        log_duration_bins /= data.avg_dt()
-    elif duration_units == 'min_dt':
-        log_duration_bins /= np.min(np.hstack(data.dt()))
-    elif duration_units == 's':
-        pass
+    if isinstance(sunits, str):
+        if sunits == 'nm':
+            sbins /= 1e-9
+        elif sunits == 'm':
+            pass
+        else:
+            raise NotImplementedError
+    elif isinstance(sunits, float):
+        sbins /= sunits
     else:
         raise NotImplementedError
 
-    if size_units == 'nm':
-        log_size_bins /= 1e-9
-    elif size_units == 'm':
-        pass
-    else:
-        raise NotImplementedError
+    # axes[0].plot(sbins[:-1], sizes_hist, '-or')
+    # axes[1].plot(tbins[:-1], durations_hist, '-or')
 
-    # axes[0].plot(log_size_bins[:-1], sizes_hist, '-or')
-    # axes[1].plot(log_duration_bins[:-1], durations_hist, '-or')
+    # axes[0].step(sbins[:-1], sizes_hist, color=kwargs.get('color', 'r'), where='post')
+    # axes[1].step(tbins[:-1], durations_hist, color=kwargs.get('color', 'r'), where='post')
 
-    # axes[0].step(log_size_bins[:-1], sizes_hist, color=kwargs.get('color', 'r'), where='post')
-    # axes[1].step(log_duration_bins[:-1], durations_hist, color=kwargs.get('color', 'r'), where='post')
-
-    axes[0].fill_between(log_size_bins[:-1],
-                         sizes_hist,
+    axes[0].fill_between(sbins[:-1],
+                         shist,
                          facecolor=kwargs.get('facecolor', 'dodgerblue'),
                          step='post',
                          edgecolor=kwargs.get('edgecolor', 'dodgerblue'))
-    axes[1].fill_between(log_duration_bins[:-1],
-                         durations_hist,
+    axes[1].fill_between(tbins[:-1],
+                         thist,
                          facecolor=kwargs.get('facecolor', 'dodgerblue'),
                          step='post',
                          edgecolor=kwargs.get('edgecolor', 'dodgerblue'))
@@ -157,8 +171,8 @@ def plot_hists(axes, data=None, bins=100, duration_units='ns', size_units='nm', 
     axes[1].set_xscale('log')
     axes[1].set_yscale('log')
 
-    axes[0].set_xlabel(f'Size ({size_units})')
-    axes[1].set_xlabel(f'Duration ({duration_units})')
+    axes[0].set_xlabel(f'Size ({sunits})')
+    axes[1].set_xlabel(f'Duration ({tunits})')
     axes[0].set_ylabel('Frequency')
     axes[1].set_ylabel('Frequency')
 

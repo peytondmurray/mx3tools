@@ -5,6 +5,9 @@ import pandas as pd
 import numba as nb
 import pathlib
 
+from . import datautil
+from . import util
+
 
 class Seismograph:
     """Finds the avalanches and corresponding sizes and durations in a signal.
@@ -132,8 +135,8 @@ def _event_sizes(t, v, vt, i_start, i_stop):
     return ret
 
 
-def bin_avg(t, s, nbins=None):
-    """Bin and average the input signals.
+def bin_avg(t, s, nbins=None, norm=True):
+    """Bin and average the input signals. The times of each event are normalized from 0 to 1.
 
     Parameters
     ----------
@@ -147,6 +150,8 @@ def bin_avg(t, s, nbins=None):
         Values of the signal measured at times t. Must be same shape as t.
     nbins : int or None
         Number of bins to use. If None, then a sensible number is chosen: t_binned = np.arange(min(t), max(t), mean(dt))
+    norm : bool
+        Scale the t-axis to [0, 1].
 
     Returns
     -------
@@ -155,6 +160,8 @@ def bin_avg(t, s, nbins=None):
     s_bin : np.ndarray
         Average value of the signal at each timestep
     """
+
+    t = _normalize_t(t)
 
     if isinstance(t, list):
         f_t = np.hstack(t).flatten()
@@ -182,3 +189,42 @@ def bin_avg(t, s, nbins=None):
     s_bin[-1] = np.mean(f_s[in_last_bin])
 
     return t_bin, s_bin
+
+
+def _normalize_t(t):
+    """For a list of arrays, normalize each array to fall between 0 and 1.
+
+    Parameters
+    ----------
+    t : list of np.ndarray
+
+    Returns
+    -------
+    list of np.ndarray
+    """
+    return [(_t - np.min(_t))/(np.max(_t)-np.min(_t)) for _t in t]
+
+
+def event_hists(data, bins):
+    if isinstance(data, datautil.SimRun) or isinstance(data, datautil.SimData):
+        sizes = data.get_avalanche_sizes()
+        durations = data.get_avalanche_durations()
+    else:
+        raise NotImplementedError
+
+    log_size_bins = np.logspace(np.log10(np.min(sizes)), np.log10(np.max(sizes)), bins)
+    log_duration_bins = np.logspace(np.log10(np.min(durations)), np.log10(np.max(durations)), bins)
+
+    sizes_hist, _ = np.histogram(sizes, bins=log_size_bins)
+    durations_hist, _ = np.histogram(durations, bins=log_duration_bins)
+
+    # Normalize the distributions; the number of occurences in each bin is divided by the bin width and the total
+    # number of events
+    sizes_hist = sizes_hist/(np.diff(log_size_bins)*len(sizes))
+    durations_hist = durations_hist/(np.diff(log_duration_bins)*len(durations))
+
+    # Validate the histograms
+    if not (util.validate_pdf(log_size_bins, sizes_hist) and util.validate_pdf(log_duration_bins, durations_hist)):
+        raise ValueError('Histograms are not normalized properly.')
+
+    return log_size_bins, sizes_hist, log_duration_bins, durations_hist
