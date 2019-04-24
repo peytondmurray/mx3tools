@@ -11,6 +11,7 @@ import struct
 import pathlib
 import tqdm
 from . import ioutil
+from . import util
 
 
 def unpack_slow(path):
@@ -190,3 +191,52 @@ def unpack_scalars(path):
 
         else:
             raise NotImplementedError
+
+
+def as_euler(path, fname):
+    """For each m*.ovf file in the given directory, generate a corresponding .csv containing the indices, rotation
+    axes, and angles needed to map a uniform [0,0,1] magnetization state to the data.
+
+    Parameters
+    ----------
+    path : [type]
+        [description]
+    fname : [type]
+        [description]
+    """
+
+    path = ioutil.pathize(path)
+    data = group_unpack(path)
+
+    for i, item in enumerate(data):
+        write_euler(f'{fname}_euler_{i}', item)
+
+    return
+
+
+def write_euler(fname, data):
+    """Given an input set of magnetization data, write an output csv file containing the rotation axis and angle
+    needed to map a uniform [0,0,1] magnetization to the data.
+
+    Parameters
+    ----------
+    fname : str
+        File name to write
+    data : np.ndarray
+        Array containing the magnetization vectors; vectors are stored as (mx, my, mz) 3-tuples, where the magnetization
+        at site [ix, iy, iz] is given by data[iz, iy, ix].
+    """
+
+    with open(fname, 'w') as f:
+        f.write('xi,yi,zi,kx,ky,kz,theta')
+
+        reference = np.array([0, 0, 1])
+
+        for iz in range(data.shape[0]):
+            for iy in range(data.shape[1]):
+                for ix in range(data.shape[2]):
+                    k = np.cross(data[iz, iy, ix], reference)
+                    theta = np.arcsin(np.dot(k, reference)/(np.abs(k)))
+                    f.write(f'{ix},{iy},{iz},{k[0]},{k[1]},{k[2]},{theta}')
+
+    return

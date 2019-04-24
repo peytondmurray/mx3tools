@@ -117,8 +117,8 @@ def plot_hists(axes, data, bins=40, tunits='ns', sunits='nm', **kwargs):
     """
 
     tbins, thist, sbins, shist = statutil.event_hists(data, bins)
-    plot_t_hist(axes[0], tbins, thist, tunits=tunits, sunits=sunits, **kwargs)
-    plot_s_hist(axes[1], sbins, shist, tunits=tunits, sunits=sunits, **kwargs)
+    plot_t_hist(axes[0], tbins, thist, tunits=tunits, **kwargs)
+    plot_s_hist(axes[1], sbins, shist, sunits=sunits, **kwargs)
     return
 
 
@@ -294,7 +294,6 @@ def burst(ax, data, cmap='viridis', **kwargs):
                                        key=lambda a: a[1]))
             new_wall = np.flipud(np.array(sorted(zip(wall.config[i]['x'].values, wall.config[i]['y'].values),
                                                  key=lambda a: a[1])))
-
             polygon_edge = np.vstack((old_wall, new_wall))
             polygons.append(patches.Polygon(polygon_edge))
 

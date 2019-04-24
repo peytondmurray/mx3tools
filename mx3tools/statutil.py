@@ -224,7 +224,7 @@ def event_hists(data, bins):
     durations_hist = durations_hist/(np.diff(log_duration_bins)*len(durations))
 
     # Validate the histograms
-    if not (util.validate_pdf(log_size_bins, sizes_hist) and util.validate_pdf(log_duration_bins, durations_hist)):
-        raise ValueError('Histograms are not normalized properly.')
+    util.validate_pdf(log_size_bins, sizes_hist)
+    util.validate_pdf(log_duration_bins, durations_hist)
 
     return log_size_bins, sizes_hist, log_duration_bins, durations_hist
