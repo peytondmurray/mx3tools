@@ -193,7 +193,7 @@ def unpack_scalars(path):
             raise NotImplementedError
 
 
-def as_euler(path, fname):
+def as_rodrigues(path, fname):
     """For each m*.ovf file in the given directory, generate a corresponding .csv containing the indices, rotation
     axes, and angles needed to map a uniform [0,0,1] magnetization state to the data.
 
@@ -209,12 +209,12 @@ def as_euler(path, fname):
     data = group_unpack(path)
 
     for i, item in enumerate(data):
-        write_euler(f'{fname}_euler_{i}', item)
+        write_rodrigues(f'{fname}_rodrigues_{i}', item)
 
     return
 
 
-def write_euler(fname, data):
+def write_rodrigues(fname, data):
     """Given an input set of magnetization data, write an output csv file containing the rotation axis and angle
     needed to map a uniform [0,0,1] magnetization to the data.
 
@@ -240,3 +240,11 @@ def write_euler(fname, data):
                     f.write(f'{ix},{iy},{iz},{k[0]},{k[1]},{k[2]},{theta}')
 
     return
+
+
+def write_successive_rodrigues(path, fname):
+
+    path = ioutil.pathize(path)
+    data = group_unpack(path)
+
+    for i in range(len(data)):
