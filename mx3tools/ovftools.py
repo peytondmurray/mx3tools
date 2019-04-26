@@ -242,9 +242,9 @@ def write_rodrigues(fname, data):
     return
 
 
-def write_successive_rodrigues(path, fname):
+# def write_successive_rodrigues(path, fname):
 
-    path = ioutil.pathize(path)
-    data = group_unpack(path)
+#     path = ioutil.pathize(path)
+#     data = group_unpack(path)
 
-    for i in range(len(data)):
+#     for i in range(len(data)):

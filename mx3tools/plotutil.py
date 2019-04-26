@@ -403,3 +403,48 @@ def anim_burst(ax, data, cmap, track=False, **kwargs):
                                    init_func=init,
                                    frames=len(wall)-2,
                                    interval=kwargs.get('interval', 100))
+
+
+def event_shape(ax, data, duration, tol, **kwargs):
+    t, s = data.events_by_duration(duration, tol)
+    t = statutil.normalize_t(t)
+
+    lines = []
+    for _t, _s in zip(t, s):
+        lines.append(list(zip(_t, _s)))
+
+    # Default values
+    kwargs = util.dict_add(kwargs, {'colors': 'k', 'alpha': 0.2})
+
+    ax.add_collection(mplcollections.LineCollection(lines, **kwargs))
+    tbin, sbin = statutil.bin_avg(t, s, nbins=40, norm=True)
+
+    ax.plot(tbin, sbin, '-', color='firebrick', linewidth=3)
+
+    return
+
+
+def sanity_event_shape(ax, data, duration, tol, **kwargs):
+    t, s = data.events_by_duration(duration, tol)
+
+    ax.plot(data.t(), data.vdw(), '-k')
+
+    # lines = []
+    for _t, _s in zip(t, s):
+        # lines.append(list(zip(_t, _s)))
+        ax.plot(_t, _s, '-r')
+
+    # Default values
+    kwargs = util.dict_add(kwargs, {'colors': 'r', 'linestyles': 'solid'})
+
+    # ax.add_collection(mplcollections.LineCollection(lines, **kwargs))
+
+    ax.set_xlim(np.min(data.t()), np.max(data.t()))
+
+    return
+
+
+def plot_dt(ax, data, **kwargs):
+    kwargs = util.dict_add(kwargs, {'color': 'r', 'linestyle': '-'})
+    ax.plot(np.diff(data.t()), **kwargs)
+    return

@@ -161,7 +161,7 @@ def bin_avg(t, s, nbins=None, norm=True):
         Average value of the signal at each timestep
     """
 
-    t = _normalize_t(t)
+    t = normalize_t(t)
 
     if isinstance(t, list):
         f_t = np.hstack(t).flatten()
@@ -191,7 +191,7 @@ def bin_avg(t, s, nbins=None, norm=True):
     return t_bin, s_bin
 
 
-def _normalize_t(t):
+def normalize_t(t):
     """For a list of arrays, normalize each array to fall between 0 and 1.
 
     Parameters

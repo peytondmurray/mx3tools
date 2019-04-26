@@ -119,6 +119,9 @@ class SimData:
         else:
             raise ValueError('No dww column in data.')
 
+    def dwpos(self):
+        return self.table['ext_exactdwposavg (m)'].values
+
     def shift(self):
         return self.table['ext_dwpos (m)'].values
 
@@ -201,7 +204,7 @@ class SimData:
         for e_length, start, stop in zip(event_lengths, i_start, i_stop):
             if duration-tol < e_length < duration+tol:
                 signals.append(self.vdw()[start:stop])
-                times.append(np.linspace(0, e_length, stop-start))
+                times.append(self.t()[start:stop])
 
         return times, signals
 
