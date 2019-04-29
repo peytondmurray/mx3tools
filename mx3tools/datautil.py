@@ -227,7 +227,7 @@ class SimRun:
 
             # Ignore any entries which either are missing the input script or the output directory
             _valid_indices = []
-            for i in range(len(_metadata)):
+            for i in tqdm.trange(len(_metadata)):
                 _script = pathlib.Path(_metadata.iloc[i]['script'])
                 if _script.exists() and (self.root / f'{_script.stem}.out').exists():
                     _valid_indices.append(i)
