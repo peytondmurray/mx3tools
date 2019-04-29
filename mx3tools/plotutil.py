@@ -116,7 +116,7 @@ def plot_hists(axes, data, bins=40, tunits='ns', sunits='nm', **kwargs):
         Data from which the histograms are generated
     """
 
-    tbins, thist, sbins, shist = statutil.event_hists(data, bins)
+    sbins, shist, tbins, thist = statutil.event_hists(data, bins)
     plot_t_hist(axes[0], tbins, thist, tunits=tunits, **kwargs)
     plot_s_hist(axes[1], sbins, shist, sunits=sunits, **kwargs)
     return
