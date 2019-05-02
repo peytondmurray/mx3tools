@@ -74,16 +74,22 @@ class SimData:
 
     """
 
-    def __init__(self, script, data_dir, threshold=0.1):
+    def __init__(self, data_dir, script='', threshold=0.1):
 
         self.data_dir = ioutil.pathize(data_dir)
-        self.script = script
+        self.script = script or self.find_script()
         self.table = pd.read_csv((self.data_dir / 'table.txt').as_posix(), sep='\t').drop_duplicates('# t (s)')
         self.threshold = threshold
         self.seismograph = None
         self.wall = None
 
         return
+
+    def find_script(self):
+        for item in self.data_dir.iterdir():
+            if item.suffix == '.mx3':
+                return self.data_dir / item
+        return ''
 
     def get_simulation_time(self):
 

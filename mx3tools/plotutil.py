@@ -2,6 +2,7 @@
 
 import numpy as np
 import pandas as pd
+import scipy.interpolate as sci
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import matplotlib.collections as mplcollections
@@ -448,3 +449,16 @@ def plot_dt(ax, data, **kwargs):
     kwargs = util.dict_add(kwargs, {'color': 'r', 'linestyle': '-'})
     ax.plot(np.diff(data.t()), **kwargs)
     return
+
+
+def spacetime_wall(ax, data, **kwargs):
+
+    wall = data.get_wall()
+    maxlen = np.max([len(w) for w in wall.config])
+    wall_grid = np.empty((len(wall), maxlen))
+    for i in range(len(wall)):
+        _interp_x = sci.interp1d(np.linspace(0, 1, len(wall[i])), wall[i]['mx'])
+        _interp_y = sci.interp1d(np.linspace(0, 1, len(wall[i])), wall[i]['my'])
+        wall_grid[i] = np.arctan2(_interp_y(np.linspace(0, 1, maxlen)), _interp_x(np.linspace(0, 1, maxlen)))
+
+    return wall_grid
