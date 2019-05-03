@@ -33,7 +33,7 @@ class DomainWall:
             raise ValueError('No domain wall files found.')
 
         files = sorted(files)
-        for item in tqdm.tqdm(files):
+        for item in tqdm.tqdm(files, desc='Reading domain wall configs'):
             self.append(item)
 
         return
@@ -233,7 +233,7 @@ class SimRun:
 
             # Ignore any entries which either are missing the input script or the output directory
             _valid_indices = []
-            for i in tqdm.trange(len(_metadata)):
+            for i in tqdm.trange(len(_metadata), desc='Reading simulation data'):
                 _script = pathlib.Path(_metadata.iloc[i]['script'])
                 if _script.exists() and (self.root / f'{_script.stem}.out').exists():
                     _valid_indices.append(i)

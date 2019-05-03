@@ -1,5 +1,7 @@
 # Plotting utilities for output of simulation files
 
+import warnings
+import tqdm
 import numpy as np
 import pandas as pd
 import scipy.interpolate as sci
@@ -54,7 +56,8 @@ def plot_dw_config(data, ax=None, cmap='twilight', marker='cell', dx=2e-9):
     cmap = cm.get_cmap(cmap)
     colors = []
 
-    data = data.sort_values('y')
+    #TODO figure out how to deal with walls which are out of order
+    # data = data.sort_values('y')
 
     if marker == 'line':
         segments = []
@@ -285,6 +288,11 @@ def burst(ax, data, cmap='viridis', **kwargs):
         collection = mplcollections.LineCollection(segments=segments, colors=kwargs.get('color', 'k'), linestyles='-')
         ax.add_collection(collection)
 
+    elif cmap == 'angle':
+        warnings.warn('Calling burst with cmap=angle is extremely slow. Matplotlib usually cannot handle this many lines; ctrl-c to give up.')
+        for w in tqdm.tqdm(wall.config, desc='Plotting DW configs'):
+            plot_dw_config(w, ax=ax, cmap='twilight', marker='line')
+
     elif isinstance(cmap, str):
         cmap = cm.get_cmap(cmap)
 
@@ -308,6 +316,9 @@ def burst(ax, data, cmap='viridis', **kwargs):
 
         ax.add_collection(polygon_collection)
         ax.add_collection(line_collection)
+
+    else:
+        raise ValueError(f'Invalid cmap argument: {cmap}')
 
     return
 
