@@ -74,11 +74,15 @@ class SimData:
 
     """
 
-    def __init__(self, data_dir, script='', threshold=0.1):
+    def __init__(self, data_dir, script='', threshold=0.1, drop_duplicates=False):
 
         self.data_dir = ioutil.pathize(data_dir)
         self.script = script or self.find_script()
-        self.table = pd.read_csv((self.data_dir / 'table.txt').as_posix(), sep='\t').drop_duplicates('# t (s)')
+        self.table = pd.read_csv((self.data_dir / 'table.txt').as_posix(), sep='\t')
+
+        if drop_duplicates:
+            self.table = self.table.drop_duplicates('# t (s)')
+
         self.threshold = threshold
         self.seismograph = None
         self.wall = None
@@ -220,7 +224,7 @@ class SimRun:
 
     """
 
-    def __init__(self, root):
+    def __init__(self, root, drop_duplicates=False):
 
         self.root = pathlib.Path(root)
 
@@ -242,16 +246,18 @@ class SimRun:
 
         else:
             self.metadata = get_metadata(self.root)
-        self.simulations = self._get_simulations()
+        self.simulations = self._get_simulations(drop_duplicates)
 
         return
 
-    def _get_simulations(self):
+    def _get_simulations(self, drop_duplicates=False):
 
         _s = []
         for _, row in self.metadata.iterrows():
             script = self.root / row['script']
-            _s.append(SimData(script=script, data_dir=self.root / f'{script.stem}.out'))
+            _s.append(SimData(script=script,
+                              data_dir=self.root / f'{script.stem}.out',
+                              drop_duplicates=drop_duplicates))
 
         return _s
 

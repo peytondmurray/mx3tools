@@ -20,12 +20,16 @@ matplotlib.rc('axes', labelsize=size)
 
 # data_lowdmi = datautil.SimRun('/home/pdmurray/Desktop/Workspace/dmidw/barkhausen/D_range/2019-04-17')
 # data_highdmi = datautil.SimRun('/home/pdmurray/Desktop/Workspace/dmidw/barkhausen/D_0.6e-3/2019-04-16')
-data_highdmi = datautil.SimRun('/home/pdmurray/Desktop/Workspace/dmidw/parameter_space/coni_ramping/test8_mzAvg')
+# data_highdmi = datautil.SimRun('/home/pdmurray/Desktop/Workspace/dmidw/parameter_space/coni_ramping/test8_mzAvg')
 
-fig, ax = plt.subplots(nrows=1, sharex=True, figsize=(8, 16))
-plotutil.burst(ax, data_highdmi[0], cmap='angle')
+data = datautil.SimRun('/home/pdmurray/Desktop/Workspace/audun1ddw/micromagnetics/restoring_force')
 
-plt.tight_layout()
+print(data[0].table)
+
+# fig, ax = plt.subplots(nrows=1, sharex=True, figsize=(8, 16))
+# plotutil.burst(ax, data_highdmi[0], cmap='angle')
+
+# plt.tight_layout()
 
 # plt.show()
-plt.savefig('/home/pdmurray/Desktop/test8_mzAvg.png', dpi=300)
+# plt.savefig('/home/pdmurray/Desktop/test8_mzAvg.png', dpi=300)
