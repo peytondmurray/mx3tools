@@ -22,9 +22,9 @@ matplotlib.rc('axes', labelsize=size)
 # data_highdmi = datautil.SimRun('/home/pdmurray/Desktop/Workspace/dmidw/barkhausen/D_0.6e-3/2019-04-16')
 # data_highdmi = datautil.SimRun('/home/pdmurray/Desktop/Workspace/dmidw/parameter_space/coni_ramping/test8_mzAvg')
 
-data = datautil.SimRun('/home/pdmurray/Desktop/Workspace/audun1ddw/micromagnetics/restoring_force')
+data = plotutil.ovfwidget(None, '/home/pdmurray/Desktop/Workspace/dmidw/sw/barkhausen_0.out/ext_dm000000.ovf')
 
-print(data[0].table)
+print(data.shape)
 
 # fig, ax = plt.subplots(nrows=1, sharex=True, figsize=(8, 16))
 # plotutil.burst(ax, data_highdmi[0], cmap='angle')

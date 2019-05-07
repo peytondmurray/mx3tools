@@ -6,6 +6,7 @@
 # The _fast_binary_decode function uses numpy's ndarray constructor to eliminate the need for loops, dramatically
 # reducing the time needed to move the data read from the file object into an array (~100x speedup).
 
+import re
 import numpy as np
 import struct
 import pathlib
@@ -25,7 +26,7 @@ def unpack_slow(path):
 
         elif headers['data_type'][3] == 'Binary':
             chunk_size = int(headers['data_type'][4])
-            endianness = _endianness(f, nbytes)
+            endianness = _endianness(f, chunk_size)
             decoder = _byte_decoder(endianness)
             return _binary_decode(f, chunk_size, decoder, headers, endianness)
 
@@ -167,14 +168,35 @@ def _fast_binary_decode_scalars(f, chunk_size, headers, dtype):
     return ret.reshape((zs, ys, xs))
 
 
-def group_unpack(path):
+def group_unpack(path, pattern='m'):
+    """Unpack a bunch of .ovf files to a numpy array.
+
+    Parameters
+    ----------
+    path : str or pathlib.Path
+        Location of files to unpack. If path is a *.ovf, the directory is searched for other similarly named files. If
+        it is a directory ending in .out, the directory is searched for files matching {pattern}*.ovf.
+    pattern : str, optional
+        File search pattern; finds all files in path matching {pattern}[0-9]+.ovf. By default this is m.
+
+    Returns
+    -------
+    np.ndarray
+        Array of floats extracted from the .ovf files.
+    """
 
     path = ioutil.pathize(path)
 
     if path.suffix == '.out':
-        files = sorted(path.glob('m*.ovf'))
+        files = sorted(path.glob(f'{pattern}*.ovf'))
     elif path.suffix == '.ovf':
-        files = sorted(path.parent.glob('m*.ovf'))
+        pattern = re.search('\D+', path.stem)[0]
+        files = sorted(path.parent.glob(f'{pattern}*.ovf'))
+    else:
+        raise ValueError(f'Invalid path: {path} must end in .out or .ovf')
+
+    if len(files) == 0:
+        raise ValueError(f'No .ovf files found in {path}')
 
     return np.array([unpack(f) for f in tqdm.tqdm(files)])
 
@@ -195,13 +217,13 @@ def unpack_scalars(path):
 
 def as_rodrigues(path, fname):
     """For each m*.ovf file in the given directory, generate a corresponding .csv containing the indices, rotation
-    axes, and angles needed to map a uniform [0,0,1] magnetization state to the data.
+    axes, and angles needed to map a uniform[0, 0, 1] magnetization state to the data.
 
     Parameters
     ----------
-    path : [type]
+    path: [type]
         [description]
-    fname : [type]
+    fname: [type]
         [description]
     """
 
@@ -216,15 +238,15 @@ def as_rodrigues(path, fname):
 
 def write_rodrigues(fname, data):
     """Given an input set of magnetization data, write an output csv file containing the rotation axis and angle
-    needed to map a uniform [0,0,1] magnetization to the data.
+    needed to map a uniform[0, 0, 1] magnetization to the data.
 
     Parameters
     ----------
-    fname : str
+    fname: str
         File name to write
-    data : np.ndarray
+    data: np.ndarray
         Array containing the magnetization vectors; vectors are stored as (mx, my, mz) 3-tuples, where the magnetization
-        at site [ix, iy, iz] is given by data[iz, iy, ix].
+        at site[ix, iy, iz] is given by data[iz, iy, ix].
     """
 
     with open(fname, 'w') as f:

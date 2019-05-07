@@ -1,5 +1,7 @@
 # Plotting utilities for output of simulation files
 
+import ipywidgets as ipw
+import re
 import warnings
 import tqdm
 import numpy as np
@@ -11,9 +13,12 @@ import matplotlib.collections as mplcollections
 import matplotlib.animation as animation
 import matplotlib.patches as patches
 import matplotlib.colors as mplcolors
+import PIL.Image as Image
 from . import datautil
 from . import util
 from . import statutil
+from . import ovftools
+from . import ioutil
 
 
 def plot_dw(data, ax=None, **kwargs):
@@ -56,7 +61,7 @@ def plot_dw_config(data, ax=None, cmap='twilight', marker='cell', dx=2e-9):
     cmap = cm.get_cmap(cmap)
     colors = []
 
-    #TODO figure out how to deal with walls which are out of order
+    # TODO figure out how to deal with walls which are out of order
     # data = data.sort_values('y')
 
     if marker == 'line':
@@ -289,7 +294,8 @@ def burst(ax, data, cmap='viridis', **kwargs):
         ax.add_collection(collection)
 
     elif cmap == 'angle':
-        warnings.warn('Calling burst with cmap=angle is extremely slow. Matplotlib usually cannot handle this many lines; ctrl-c to give up.')
+        warnings.warn(
+            'Calling burst with cmap=angle is extremely slow. Matplotlib usually cannot handle this many lines; ctrl-c to give up.')
         for w in tqdm.tqdm(wall.config, desc='Plotting DW configs'):
             plot_dw_config(w, ax=ax, cmap='twilight', marker='line')
 
@@ -473,3 +479,60 @@ def spacetime_wall(ax, data, **kwargs):
         wall_grid[i] = np.arctan2(_interp_y(np.linspace(0, 1, maxlen)), _interp_x(np.linspace(0, 1, maxlen)))
 
     return wall_grid
+
+
+def toImage(arr, cmap=None, vmin=None, vmax=None, scale=0.5):
+    """Convert a 2D array to a PIL image, using cmap as the colormap.
+
+    Parameters
+    ----------
+    arr : np.ndarray
+        Input array. Must be 2D.
+    cmap : str or None
+        Colormap to use. If None, a black and white colormap is used.
+
+    Returns
+    -------
+    PIL.Image.Image
+        PIL image
+    """
+
+    if vmin is not None and vmax is not None:
+        img = (arr-vmin)/(vmax-vmin)
+    else:
+        img = (arr - arr.min())/(arr.max()-arr.min())
+
+    if cmap is None:
+        cimg = img
+    else:
+        cimg = cm.get_cmap(cmap)(img)
+    ret = Image.fromarray(np.uint8(255*cimg))
+    print(ret.size)
+
+    return ret.resize((np.array(ret.size)*scale).astype(int))
+
+
+def display_sequence(images, cmap=None):
+    def _show(frame=(0, len(images)-1)):
+        return toImage(images[frame], cmap)
+    return ipw.interact(_show)
+
+
+def ovfwidget(ax, first_file, comp=2, cmap=None, norm=True, logabs=False):
+    first_file = ioutil.pathize(first_file)
+    data = ovftools.group_unpack(first_file)[:, 0, :, :, comp]
+
+    if logabs:
+        mask = data != 0
+        data = np.log10(np.abs(data), where=np.abs(data) > 0)
+        data[np.logical_not(mask)] = 0
+        # _data = np.log10(np.abs(data))
+        # _data[data == 0] = np.nan
+        # data = _data
+
+    def _show(frame=(0, len(data)-1)):
+        if norm:
+            return toImage(data[frame], cmap, vmin=data.min(), vmax=data.max())
+        else:
+            return toImage(data[frame], cmap)
+    return ipw.interact(_show)
