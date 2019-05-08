@@ -182,6 +182,10 @@ class Sim:
         self.suffix += f'_seed={val}'
         return
 
+    def set_bstep(self, val):
+        self.setval('Bstep := 0.1e-3', f'Bstep := {val}')
+        self.suffix += f'_Bstep={val}'
+
     def setval(self, old: str, new: str):
         """Replace first instance of old string with new if it exists in lines. Return a copy of the altered set of
         lines. Throws error if the old string cannot be found.
