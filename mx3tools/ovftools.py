@@ -198,7 +198,7 @@ def group_unpack(path, pattern='m'):
     if len(files) == 0:
         raise ValueError(f'No .ovf files found in {path}')
 
-    return np.array([unpack(f) for f in tqdm.tqdm(files)])
+    return np.array([unpack(f) for f in tqdm.tqdm(files, desc='Unpacking .ovf files')])
 
 
 def unpack_scalars(path):
