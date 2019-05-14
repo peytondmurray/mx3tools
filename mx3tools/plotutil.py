@@ -425,7 +425,7 @@ def anim_burst(ax, data, cmap, track=False, **kwargs):
                                    interval=kwargs.get('interval', 100))
 
 
-def event_shape(ax, data, duration, tol, **kwargs):
+def event_shape(ax, data, duration, tol, plot_individual_events=True, nev_text=True, **kwargs):
     t, s = data.events_by_duration(duration, tol)
     t = statutil.normalize_t(t)
 
@@ -436,10 +436,14 @@ def event_shape(ax, data, duration, tol, **kwargs):
     # Default values
     kwargs = util.dict_add(kwargs, {'colors': 'k', 'alpha': 0.2})
 
-    ax.add_collection(mplcollections.LineCollection(lines, **kwargs))
-    tbin, sbin = statutil.bin_avg(t, s, nbins=40, norm=True)
+    if plot_individual_events:
+        ax.add_collection(mplcollections.LineCollection(lines, **kwargs))
 
+    tbin, sbin = statutil.bin_avg(t, s, nbins=None, norm=True)
     ax.plot(tbin, sbin, '-', color='firebrick', linewidth=3)
+
+    if nev_text:
+        ax.text(0.1, 0.8, f'# events: {len(t)}', transform=ax.transAxes, color='r')
 
     return
 

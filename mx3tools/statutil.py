@@ -174,19 +174,20 @@ def bin_avg(t, s, nbins=None, norm=True):
         f_s = s.flatten()
 
     if nbins is None:
-        dt = np.mean([np.mean(np.diff(_t)) for _t in t])
-        t_bin = np.arange(np.min(f_t), np.max(f_t), dt)
+
+        nbins = np.min([len(_t) for _t in t])
+        t_bin = np.linspace(np.min(f_t), np.max(f_t), nbins+1)  # Array of bin edges
         s_bin = np.zeros(t_bin.shape)
     else:
         t_bin = np.linspace(np.min(f_t), np.max(f_t), nbins+1)
         s_bin = np.zeros(nbins+1)
 
-    for i in range(t_bin.shape[0]-2):
+    for i in range(nbins):
         in_bin_i = np.nonzero(np.logical_and(t_bin[i] <= f_t, f_t < t_bin[i+1]))
         s_bin[i] = np.mean(f_s[in_bin_i])
 
-    in_last_bin = np.nonzero(np.logical_and(t_bin[-2] <= f_t, f_t <= t_bin[-1]))
-    s_bin[-1] = np.mean(f_s[in_last_bin])
+    # in_last_bin = np.nonzero(np.logical_and(t_bin[-2] <= f_t, f_t <= t_bin[-1]))
+    # s_bin[-1] = np.mean(f_s[in_last_bin])
 
     return t_bin, s_bin
 
