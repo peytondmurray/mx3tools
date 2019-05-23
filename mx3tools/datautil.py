@@ -267,6 +267,10 @@ class SimRun:
     def __getitem__(self, i):
         return self.simulations[i]
 
+    def __setitem__(self, i, val):
+        self.simulations[i] = val
+        return
+
     def get_avalanche_durations(self):
         return np.hstack([sim.get_avalanche_durations() for sim in self.simulations])
 
