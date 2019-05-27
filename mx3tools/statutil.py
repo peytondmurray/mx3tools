@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 import numba as nb
 import pathlib
+import warnings
 
 from . import datautil
 from . import util
@@ -18,6 +19,12 @@ class Seismograph:
         self.t = t
         self.v = v
         self.vt = vt
+
+        if t.shape != v.shape:
+            warnings.warn(f't, and v are not of the same shape. (t, v): ({len(t)}, {len(v)})')
+            self.sizes = np.zeros(0)
+            self.durations = np.zeros(0)
+            return
 
         self.istart, self.istop = _events(v, vt)
         self.tstart, self.tstop = self.t[self.istart], self.t[self.istop]
@@ -43,7 +50,7 @@ def _start_indices(v, vt):
         The starting indices of each event
     """
 
-    return np.nonzero(np.logical_and(v[1:] > vt, v[:-1] < vt))[0]+1
+    return np.nonzero(np.logical_and(v[1:] > vt, v[:-1] <= vt))[0]+1
 
 
 def _end_indices(v, vt):
@@ -62,7 +69,7 @@ def _end_indices(v, vt):
         The ending indices of each event
     """
 
-    return np.nonzero(np.logical_and(v[1:] < vt, v[:-1] > vt))[0]+1
+    return np.nonzero(np.logical_and(v[1:] <= vt, v[:-1] > vt))[0]+1
 
 
 def _events(v, vt):
@@ -90,10 +97,10 @@ def _events(v, vt):
     if i_start[0] > i_stop[0]:
         i_stop = i_stop[1:]
     if i_start[-1] > i_stop[-1]:
-        if i_start[-1] != len(v) - 1:
-            i_stop = np.append(i_stop, len(v)-1)
-        else:
-            i_start = i_start[:-1]
+        i_start = i_start[:-1]
+
+    if i_start.shape != i_stop.shape:
+        raise ValueError('Starting and stopping indices of avalanches do not have same number of elements.')
 
     return i_start, i_stop
 
