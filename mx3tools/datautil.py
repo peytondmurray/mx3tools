@@ -330,7 +330,7 @@ def get_metadata(root):
     root = ioutil.pathize(root)
 
     data = {}
-    for item in root.iterdir():
+    for item in sorted(root.iterdir()):
         script = root / (item.stem + '.mx3')
         if item.is_dir() and script.exists():
             check_dict_add_val(data, 'script', script.as_posix())
