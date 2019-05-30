@@ -11,40 +11,4 @@ import mx3tools.datautil as datautil
 import mx3tools.plotutil as plotutil
 
 
-def mz_to_pos_in_window(mz):
-    return (1 - (1 - mz)/2)*1024*2e-9
-
-
-size = 18
-matplotlib.rc('axes', labelsize=size)
-
-# data = datautil.SimRun('/home/pdmurray/Desktop/Workspace/dmidw/barkhausen/D_0.3e-3/2019-05-18_tables')
-data = datautil.SimData('/home/pdmurray/Desktop/Workspace/dmidw/barkhausen/D_0.3e-3/2019-05-18_tables/barkhausen_29.out/')
-
-stuff = statutil.event_hists(data, 40)
-
-
-
-
-
-
-
-
-
-
-# data_highdmi = datautil.SimRun('/home/pdmurray/Desktop/Workspace/dmidw/barkhausen/D_0.6e-3/2019-04-16')
-# data_highdmi = datautil.SimRun('/home/pdmurray/Desktop/Workspace/dmidw/parameter_space/coni_ramping/test8_mzAvg')
-
-
-# plotutil.ovfVideo('/home/pdmurray/Desktop/Workspace/dmidw/sw/barkhausen_0.out/ext_dm000000.ovf',
-#                   fps=15, comp=0, cmap='magma', norm=True, logabs=True)
-
-
-# fig, ax = plt.subplots(ncols=2, figsize=(8, 16))
-# plotutil.plot_hists(ax, data)
-# plotutil.burst(ax, data_highdmi[0], cmap='angle')
-
-# plt.tight_layout()
-
-# plt.show()
-# plt.savefig('/home/pdmurray/Desktop/test8_mzAvg.png', dpi=300)
+data = datautil.OommfSim('/home/pdmurray/Desktop/Workspace/audun1ddw/micromagnetics/oommf/restoring_oommf_nx=64')

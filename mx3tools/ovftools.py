@@ -15,6 +15,9 @@ from . import ioutil
 from . import util
 
 
+
+
+
 def unpack_slow(path):
     path = ioutil.pathize(path)
 
@@ -83,8 +86,8 @@ def _read_header(fobj):
             headers['SimTime'] = float(line.split(':')[-1].strip().split()[0].strip())
         elif 'Iteration' in line:
             headers['Iteration'] = float(line.split(':')[2].split(',')[0].strip())
-        elif 'Stage' in line:
-            headers['Stage'] = float(line.split(':')[2].split(',')[0].strip())
+        # elif 'Stage' in line:
+        #     headers['Stage'] = float(line.split(':')[2].split(',')[0].strip())
         elif 'MIF source file' in line:
             headers['MIFSource'] = line.split(':', 2)[2].strip()
         else:
@@ -187,13 +190,22 @@ def group_unpack(path, pattern='m'):
 
     path = ioutil.pathize(path)
 
-    if path.suffix == '.out':
+    if path.suffix == '.out' or path.is_dir():
         files = sorted(path.glob(f'{pattern}*.ovf'))
+        if len(files) == 0:
+            files = sorted(path.glob(f'{pattern}*.omf'))
+
+        if len(files) == 0:
+            raise ValueError(f'No .omf or .ovf files found in {path}')
+
     elif path.suffix == '.ovf':
         pattern = re.search('\D+', path.stem)[0]
         files = sorted(path.parent.glob(f'{pattern}*.ovf'))
+    elif path.suffix == '.omf':
+        pattern = re.search('.+', path.stem)[0]
+        files = sorted(path.parent.glob(f'{pattern}*.omf'))
     else:
-        raise ValueError(f'Invalid path: {path} must end in .out or .ovf')
+        raise ValueError(f'Invalid path: {path} must end in .out, .ovf, or .omf')
 
     if len(files) == 0:
         raise ValueError(f'No .ovf files found in {path}')

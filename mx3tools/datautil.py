@@ -13,6 +13,7 @@ import matplotlib.animation as animation
 import matplotlib.cm as cm
 from . import statutil
 from . import ioutil
+from . import ovftools
 import tqdm
 
 
@@ -381,3 +382,70 @@ def Bw(B, T, alpha):
     """
 
     return np.sqrt(B**2 - ((2*scc.pi*(1+alpha**2))/(scc.physical_constants['electron gyromag. ratio'][0]*T))**2)
+
+
+class OommfSim:
+
+    def __init__(self, outdir):
+        # Need to write a parser to get column names...for now, take the easy (fast) way out
+        self.names = ['Oxs_CGEvolve::Max mxHxm',
+                      'Oxs_CGEvolve::Total energy',
+                      'Oxs_CGEvolve::Delta E',
+                      'Oxs_CGEvolve::Bracket count',
+                      'Oxs_CGEvolve::Line min count',
+                      'Oxs_CGEvolve::Conjugate cycle count',
+                      'Oxs_CGEvolve::Cycle count',
+                      'Oxs_CGEvolve::Cycle sub count',
+                      'Oxs_CGEvolve::Energy calc count',
+                      'Oxs_UniformExchange::Energy',
+                      'Oxs_UniformExchange::Max Spin Ang',
+                      'Oxs_UniformExchange::Stage Max Spin Ang',
+                      'Oxs_UniformExchange::Run Max Spin Ang',
+                      'Oxs_Demag::Energy',
+                      'Oxs_UZeeman::Energy',
+                      'Oxs_UZeeman::B',
+                      'Oxs_UZeeman::Bx',
+                      'Oxs_UZeeman::By',
+                      'Oxs_UZeeman::Bz',
+                      'Oxs_UniaxialAnisotropy::Energy',
+                      'Oxs_MinDriver::Iteration',
+                      'Oxs_MinDriver::Stage iteration',
+                      'Oxs_MinDriver::Stage',
+                      'Oxs_MinDriver::mx',
+                      'Oxs_MinDriver::my',
+                      'Oxs_MinDriver::mz']
+
+        outdir = pathlib.Path(outdir)
+        self.mif = outdir / (outdir.stem + '.mif')
+        self.spin = ovftools.group_unpack(outdir, pattern=outdir.stem)
+        self.table = self.extract_odt(outdir)
+
+        return
+
+    def extract_odt(self, outdir):
+        for item in pathlib.Path(outdir).iterdir():
+            if item.suffix == '.odt':
+                return pd.read_csv(item.as_posix(), sep='\s+', header=None, names=self.names)
+        raise ValueError(f'No odt found in {outdir}')
+
+    def dwpos(self, dx=1e-9):
+        pos = []
+        for i in range(self.spin.shape[0]):
+            pos.append(self._dwpos(self.spin[i, 0, :, :, 2], dx))
+
+        return pos
+
+    def _dwpos(self, mz, dx):
+        zcs = np.array(list(zip(*np.nonzero(mz[:, 1:]*mz[:, :-1] <= 0))))
+
+        for i in range(1, len(zcs))[::-1]:
+            if zcs[i][0] == zcs[i-1][0]:
+                zcs = np.vstack((zcs[:i-1], zcs[i:]))
+
+        return np.mean(zcs[:, 1])*dx
+
+    def e_demag(self):
+        return self.table['Oxs_Demag::Energy']
+
+    def b_z(self):
+        return self.table['Oxs_UZeeman::Bz']
