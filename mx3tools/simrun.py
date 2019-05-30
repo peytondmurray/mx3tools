@@ -6,6 +6,7 @@ import pandas as pd
 import scipy.constants as scc
 import json
 import time
+import warnings
 from . import ioutil
 from . import datautil
 
@@ -54,6 +55,10 @@ class Sim:
 
     def run(self):
 
+        if not self.replace and self.outdir.exists():
+            warnings.warn(f'Outdir already exists: {self.outdir} ...skipping simulation.')
+            return
+
         start_time = time.time()
         subprocess.run([self.config['mumax'], self.script], shell=False)
         print(f'Simulation time: {time.time()-start_time}')
@@ -83,7 +88,8 @@ class Sim:
             if self.replace:
                 ioutil.rmdir(self.outdir)
             else:
-                raise IOError('Outdir already exists!')
+                warnings.warn(f'Outdir already exists: {self.outdir} ...skipping script generation.')
+                return
 
         # Call mumax
         ioutil.safely_write(self.script, self.lines, overwrite=self.replace)
