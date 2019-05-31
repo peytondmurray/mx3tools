@@ -15,7 +15,13 @@ from . import ioutil
 from . import util
 
 
+def read_header(path):
+    path = ioutil.pathize(path)
 
+    with path.open('rb') as f:
+        headers = _read_header(f)
+
+    return headers
 
 
 def unpack_slow(path):

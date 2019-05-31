@@ -415,17 +415,24 @@ class OommfSim:
                       'Oxs_MinDriver::my',
                       'Oxs_MinDriver::mz']
 
-        outdir = pathlib.Path(outdir)
+        self.outdir = pathlib.Path(outdir)
         self.mif = outdir / (outdir.stem + '.mif')
         self.spin = ovftools.group_unpack(outdir, pattern=outdir.stem)
         self.table = self.extract_odt(outdir)
+        self.header = self.extract_header(outdir)
 
         return
 
+    def extract_header(self, outdir):
+        for item in sorted(pathlib.Path(self.outdir).iterdir()):
+            if item.suffix == '.omf':
+                return ovftools.read_header(item.as_posix())
+        raise ValueError(f'No omf found in {self.outdir}')
+
     def extract_odt(self, outdir):
-        for item in pathlib.Path(outdir).iterdir():
+        for item in sorted(pathlib.Path(outdir).iterdir()):
             if item.suffix == '.odt':
-                return pd.read_csv(item.as_posix(), sep='\s+', header=None, names=self.names)
+                return pd.read_csv(item.as_posix(), sep=r'\s+', header=None, names=self.names, comment='#')
         raise ValueError(f'No odt found in {outdir}')
 
     def dwpos(self, dx=1e-9):
@@ -433,19 +440,24 @@ class OommfSim:
         for i in range(self.spin.shape[0]):
             pos.append(self._dwpos(self.spin[i, 0, :, :, 2], dx))
 
-        return pos
+        return np.array(pos)
 
     def _dwpos(self, mz, dx):
-        zcs = np.array(list(zip(*np.nonzero(mz[:, 1:]*mz[:, :-1] <= 0))))
+        pct = 1-(1-np.mean(mz))/2
 
-        for i in range(1, len(zcs))[::-1]:
-            if zcs[i][0] == zcs[i-1][0]:
-                zcs = np.vstack((zcs[:i-1], zcs[i:]))
-
-        return np.mean(zcs[:, 1])*dx
+        return pct*self.nxyz()[0]*self.dxyz()[0]
 
     def e_demag(self):
         return self.table['Oxs_Demag::Energy']
 
     def b_z(self):
         return self.table['Oxs_UZeeman::Bz']
+
+    def nxyz(self):
+        return self.header['xnodes'], self.header['ynodes'], self.header['znodes']
+
+    def dxyz(self):
+        return self.header['xstepsize'], self.header['ystepsize'], self.header['zstepsize']
+
+    def __len__(self):
+        return self.spin.shape[0]
