@@ -116,7 +116,7 @@ def color_wheel(fig, cmap='twilight'):
     return
 
 
-def plot_hists(axes, data, bins=40, tunits='ns', sunits='nm', **kwargs):
+def plot_hists(axes, data, bins=40, tunits='ns', sunits='nm', key='vdw', **kwargs):
     """Plot the t and s histograms. See plot_s_hist and plot_t_hist docstrings for more info.
 
     Parameters
@@ -127,7 +127,7 @@ def plot_hists(axes, data, bins=40, tunits='ns', sunits='nm', **kwargs):
         Data from which the histograms are generated
     """
 
-    sbins, shist, tbins, thist = statutil.event_hists(data, bins)
+    sbins, shist, tbins, thist = statutil.event_hists(data, bins, key=key)
     plot_t_hist(axes[0], tbins, thist, tunits=tunits, **kwargs)
     plot_s_hist(axes[1], sbins, shist, sunits=sunits, **kwargs)
     return
@@ -148,9 +148,7 @@ def plot_s_hist(ax, sbins, shist, sunits='nm', **kwargs):
         Units to be used for plotting the s values: 'nm' [default] or 'm', or pass your own float
     """
 
-    if sbins is None and shist is not None:
-        sbins, shist, _, _ = statutil.event_hists(data, bins)
-    elif sbins is not None and shist is not None:
+    if sbins is not None and shist is not None:
         if isinstance(sunits, str):
             if sunits == 'nm':
                 sbins /= 1e-9
@@ -180,7 +178,8 @@ def plot_s_hist(ax, sbins, shist, sunits='nm', **kwargs):
 
         return
     else:
-        raise ValueError('sbins and shist both must either be None or must be passed as parameters.')
+        raise ValueError('tbins and thist both must be passed as parameters.')
+
 
 def plot_t_hist(ax, tbins=None, thist=None, tunits='ns', **kwargs):
     """Plot the t histogram.
@@ -197,9 +196,7 @@ def plot_t_hist(ax, tbins=None, thist=None, tunits='ns', **kwargs):
         Units to be used for plotting the t values: 'ns' [default] or 's', or pass your own float
     """
 
-    if tbins is None and thist is not None:
-        _, _, tbins, thist = statutil.event_hists(data, bins)
-    elif tbins is not None and thist is not None:
+    if tbins is not None and thist is not None:
         if isinstance(tunits, str):
             if tunits == 'ns':
                 tbins /= 1e-9
@@ -228,7 +225,7 @@ def plot_t_hist(ax, tbins=None, thist=None, tunits='ns', **kwargs):
         ax.set_ylabel('Frequency')
         return
     else:
-        raise ValueError('tbins and thist both must either be None or must be passed as parameters.')
+        raise ValueError('tbins and thist both must be passed as parameters.')
 
 
 def anim_track(ax, *walls, interval=100, maxframes=None, label='time', **kwargs):

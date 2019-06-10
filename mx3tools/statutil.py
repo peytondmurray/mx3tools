@@ -12,16 +12,33 @@ from . import util
 
 class Seismograph:
     """Finds the avalanches and corresponding sizes and durations in a signal.
+
+    Parameters
+    ----------
+    t : np.ndarray
+        Time
+    v : np.ndarray
+        Signal to be watched for avalanches
+    vt : float
+        Threshold value; events are found when the signal crosses this threshold
+    s : np.ndarray
+        Signal to be integrated during an avalanche to get avalanche sizes; by default, this is the same signal as
+        v, the one being watched for avalanches. But it can also be different, e.g., a domain wall avalanche can
+        be thresholded on the velocity, but can be integrated to get the avalanche sizes in terms of Axy and Az.
+
+        If this parameter is applied, no threshold is subtracted from s before it is integrated.
+
     """
 
-    def __init__(self, t, v, vt):
+    def __init__(self, t, v, vt, s=None):
 
         self.t = t
         self.v = v
         self.vt = vt
+        self.s = s or v         # If s not passed, use v
 
-        if t.shape != v.shape:
-            warnings.warn(f't, and v are not of the same shape. (t, v): ({len(t)}, {len(v)})')
+        if t.shape != v.shape != s.shape:
+            warnings.warn(f't, v, and s must be the same shape. (t, v, s): ({len(t)}, {len(v)}, {len(s)})')
             self.sizes = np.zeros(0)
             self.durations = np.zeros(0)
             return
@@ -29,7 +46,11 @@ class Seismograph:
         self.istart, self.istop = _events(v, vt)
         self.tstart, self.tstop = self.t[self.istart], self.t[self.istop]
         self.durations = self.tstop - self.tstart
-        self.sizes = _event_sizes(self.t, self.v, self.vt, self.istart, self.istop)
+
+        if s is None:
+            self.sizes = _event_sizes(self.t, self.v-self.vt, self.istart, self.istop)
+        else:
+            self.sizes = _event_sizes(self.t, self.s, self.istart, self.istop)
 
         return
 
@@ -105,7 +126,7 @@ def _events(v, vt):
     return i_start, i_stop
 
 
-def _event_sizes(t, v, vt, i_start, i_stop):
+def _event_sizes(t, v_minus_vt, i_start, i_stop):
     """Compute the size of each avalanche in the signal. The size of an avalanche is the integral of the signal over
     the time the signal is above the threshold. This integration is done using rectangles, with
 
@@ -119,8 +140,6 @@ def _event_sizes(t, v, vt, i_start, i_stop):
         Time
     v : np.ndarray
         Signal to be integrated
-    vt : float
-        Threshold signal value
     i_start : np.ndarray
         Array of starting indices of the events
     i_stop : np.ndarray
@@ -132,12 +151,12 @@ def _event_sizes(t, v, vt, i_start, i_stop):
         Size of each event
     """
 
-    V = v - vt
+    # Calculate the central difference, and use forward and backward differences for the edge to preserve length
     dt = np.hstack((np.array([t[1] - t[0]]), (t[2:]-t[:-2])*0.5, np.array([t[-1]-t[-2]])))
 
     ret = np.empty(i_start.shape[0])
     for i in range(len(i_start)):
-        ret[i] = np.sum(V[i_start[i]:i_stop[i]]*dt[i_start[i]:i_stop[i]], axis=0)
+        ret[i] = np.sum(v_minus_vt[i_start[i]:i_stop[i]]*dt[i_start[i]:i_stop[i]], axis=0)
 
     return ret
 
@@ -213,7 +232,7 @@ def normalize_t(t):
     return [(_t - np.min(_t))/(np.max(_t)-np.min(_t)) for _t in t]
 
 
-def event_hists(data, bins):
+def event_hists(data, bins, key='vdw'):
     """Get event histograms. The event sizes and durations are log-distributed.
 
     Parameters
@@ -230,7 +249,7 @@ def event_hists(data, bins):
     """
     if isinstance(data, datautil.SimRun) or isinstance(data, datautil.SimData):
 
-        size_bins, size_hist = loghist(data.get_avalanche_sizes(), bins)
+        size_bins, size_hist = loghist(data.get_avalanche_sizes(key=key), bins)
         time_bins, time_hist = loghist(data.get_avalanche_durations(), bins)
 
         return size_bins, size_hist, time_bins, time_hist

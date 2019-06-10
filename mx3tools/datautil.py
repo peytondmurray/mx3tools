@@ -75,6 +75,8 @@ class SimData:
 
     """
 
+    VALID_TIMESERIES = ['t', 'vdw', 'Axy', 'Az']
+
     def __init__(self, data_dir, script='', threshold=0.1, drop_duplicates=False):
 
         self.data_dir = ioutil.pathize(data_dir)
@@ -85,7 +87,7 @@ class SimData:
             self.table = self.table.drop_duplicates('# t (s)')
 
         self.threshold = threshold
-        self.seismograph = None
+        self.seismograph = {}
         self.wall = None
 
         return
@@ -139,13 +141,16 @@ class SimData:
     def t(self):
         return self.table['# t (s)'].values
 
-    def get_seismograph(self):
-        if self.seismograph is None:
-            self.seismograph = statutil.Seismograph(self.t(), self.vdw(), self.threshold)
-        return self.seismograph
+    def get_seismograph(self, key='vdw'):
+        if key in self.VALID_TIMESERIES:
+            if key not in self.seismograph:
+                self.seismograph[key] = statutil.Seismograph(self.t(), getattr(self, key)(), self.threshold)
+            return self.seismograph[key]
+        else:
+            raise ValueError(f'Seismograph requested ({key}) is not a valid timeseries: {self.VALID_TIMESERIES}')
 
-    def get_avalanche_sizes(self):
-        s = self.get_seismograph()
+    def get_avalanche_sizes(self, key='vdw'):
+        s = self.get_seismograph(key)
         return s.sizes
 
     def get_avalanche_durations(self):
@@ -275,8 +280,8 @@ class SimRun:
     def get_avalanche_durations(self):
         return np.hstack([sim.get_avalanche_durations() for sim in self.simulations])
 
-    def get_avalanche_sizes(self):
-        return np.hstack([sim.get_avalanche_sizes() for sim in self.simulations])
+    def get_avalanche_sizes(self, key='vdw'):
+        return np.hstack([sim.get_avalanche_sizes(key=key) for sim in self.simulations])
 
     def __repr__(self):
         return self.metadata.to_html()
