@@ -214,25 +214,53 @@ def normalize_t(t):
 
 
 def event_hists(data, bins):
+    """Get event histograms. The event sizes and durations are log-distributed.
+
+    Parameters
+    ----------
+    data : datautil.SimRun or datautil.SimData
+        Data from which to generate histograms
+    bins : int
+        Number of bins in which the data should be binned
+
+    Returns
+    -------
+    tuple of np.ndarray
+        size_bins, size_hist, time_bins, time_hist
+    """
     if isinstance(data, datautil.SimRun) or isinstance(data, datautil.SimData):
-        sizes = data.get_avalanche_sizes()
-        durations = data.get_avalanche_durations()
+
+        size_bins, size_hist = loghist(data.get_avalanche_sizes(), bins)
+        time_bins, time_hist = loghist(data.get_avalanche_durations(), bins)
+
+        return size_bins, size_hist, time_bins, time_hist
     else:
         raise NotImplementedError
 
-    log_size_bins = np.logspace(np.log10(np.min(sizes)), np.log10(np.max(sizes)), bins)
-    log_duration_bins = np.logspace(np.log10(np.min(durations)), np.log10(np.max(durations)), bins)
 
-    sizes_hist, _ = np.histogram(sizes, bins=log_size_bins)
-    durations_hist, _ = np.histogram(durations, bins=log_duration_bins)
+def loghist(data, bins):
+    """Generate bins and a histogram, properly normalized by bin size and number of samples, using log spaced bins.
 
-    # Normalize the distributions; the number of occurences in each bin is divided by the bin width and the total
-    # number of events
-    sizes_hist = sizes_hist/(np.diff(log_size_bins)*len(sizes))
-    durations_hist = durations_hist/(np.diff(log_duration_bins)*len(durations))
+    Parameters
+    ----------
+    data : np.ndarray
+        Data from which to generate histograms
+    bins : int
+        Number of bins in which the data should be binned
+
+    Returns
+    -------
+    tuple of np.ndarray
+        bins, hist
+    """
+
+    logbins = np.logspace(np.log10(np.min(data)), np.log10(np.max(data)), bins)
+    hist, _ = np.histogram(data, bins=logbins)
+
+    # Normalize the distributions; the number of occurences in each bin is divided by the bin width and the sample size
+    hist = hist/(np.diff(logbins)*len(data))
 
     # Validate the histograms
-    util.validate_pdf(log_size_bins, sizes_hist)
-    util.validate_pdf(log_duration_bins, durations_hist)
+    util.validate_pdf(logbins, hist)
 
-    return log_size_bins, sizes_hist, log_duration_bins, durations_hist
+    return logbins, hist
