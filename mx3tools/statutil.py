@@ -283,3 +283,18 @@ def loghist(data, bins):
     util.validate_pdf(logbins, hist)
 
     return logbins, hist
+
+
+def avg_event_size(data, duration, bins=40, key='vdw'):
+
+    sizes = data.get_avalanche_sizes(key=key)
+    times = data.get_avalanche_durations()
+
+    log_time_bins = np.logspace(np.log10(np.min(times)), np.log10(np.max(times)), bins+1)  # Bin edges
+    avg_size = np.ones(bins)
+
+    for i in range(bins):
+        avg_size[i] = np.mean(sizes[np.logical_and(times > log_time_bins[i], times < log_time_bins[i+1])])
+    
+    return log_time_bins, avg_size
+
