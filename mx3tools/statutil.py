@@ -285,7 +285,7 @@ def loghist(data, bins):
     return logbins, hist
 
 
-def avg_event_size(data, duration, bins=40, key='vdw'):
+def avg_event_size(data, bins=40, key='vdw'):
 
     sizes = data.get_avalanche_sizes(key=key)
     times = data.get_avalanche_durations()
@@ -295,6 +295,5 @@ def avg_event_size(data, duration, bins=40, key='vdw'):
 
     for i in range(bins):
         avg_size[i] = np.mean(sizes[np.logical_and(times > log_time_bins[i], times < log_time_bins[i+1])])
-    
-    return log_time_bins, avg_size
 
+    return log_time_bins, avg_size
