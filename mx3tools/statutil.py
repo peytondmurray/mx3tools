@@ -297,3 +297,12 @@ def avg_event_size(data, bins=40, key='vdw'):
         avg_size[i] = np.mean(sizes[np.logical_and(times > log_time_bins[i], times < log_time_bins[i+1])])
 
     return log_time_bins, avg_size
+
+
+def logbin2d(datax, datay, nbinsx, nbinsy):
+
+    _binsx = np.logspace(np.log10(np.min(datax)), np.log10(np.max(datax)), nbinsx+1)
+    _binsy = np.logspace(np.log10(np.min(datay)), np.log10(np.max(datay)), nbinsy+1)
+
+    binsx, binsy = np.meshgrid(_binsx, _binsy)
+
