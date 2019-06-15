@@ -1,6 +1,7 @@
 # Plotting utilities for output of simulation files
 
 import ipywidgets as ipw
+import IPython.display as ipd
 import re
 import warnings
 import tqdm
@@ -21,6 +22,7 @@ from . import util
 from . import statutil
 from . import ovftools
 from . import ioutil
+import cmocean as cmo
 
 
 def plot_dw(data, ax=None, **kwargs):
@@ -506,7 +508,7 @@ def ovfwidget(first_file, comp=2, cmap='viridis', norm=True, logabs=False, scale
         First file in the set of ovf files to show
     comp : int
         Component of the vector field to be shown
-    cmap : str
+    cmap : str or LinearSegmentedColormap
         Colormap to use
     norm : bool
         When True, normalize the values in the data across all files/time steps
@@ -518,6 +520,14 @@ def ovfwidget(first_file, comp=2, cmap='viridis', norm=True, logabs=False, scale
     first_file = ioutil.pathize(first_file)
     data = ovftools.group_unpack(first_file)[:, 0, :, :, comp]
 
+    if isinstance(cmap, str):
+        if cmap in plt.colormaps():
+            cmap = cm.get_cmap(cmap)
+        if cmap in cmo.cm.cmapnames:
+            cmap = getattr(cmo.cm, cmap)
+        else:
+            raise ValueError(f'cmap {cmap} not recognized by either matplotlib or cmocean.')
+
     if logabs:
         data = np.log10(np.abs(data))
 
@@ -525,11 +535,16 @@ def ovfwidget(first_file, comp=2, cmap='viridis', norm=True, logabs=False, scale
         data = (data - data[data > -np.inf].min())/(data[data > -np.inf].max() - data[data > -np.inf].min())
 
     def _show(frame=(0, len(data)-1)):
-        im = Image.fromarray(np.uint8(cm.get_cmap(cmap)(data[frame])*255))
+        im = Image.fromarray(np.uint8(cmap(data[frame])*255))
         im.thumbnail((scale*np.array(im.size)).astype(int))
+        ipd.display(im)
         return im
 
-    return ipw.interact(_show)
+    interactive_plot = ipw.interactive(_show)
+    output = interactive_plot.children[-1]
+    output.layout.height = f'{scale*data.shape[1]}px'
+
+    return interactive_plot
 
 
 def ovfVideo(first_file, fname='out.avi', fps=30, comp=2, cmap='viridis', norm=True, logabs=False, scale=0.5):
