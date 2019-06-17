@@ -1,14 +1,16 @@
 # Methods related to statistical analysis of simulation output files
 
+import matplotlib.pyplot as plt
+
 import numpy as np
 import pandas as pd
 import numba as nb
 import pathlib
 import warnings
+import time
 
 from . import datautil
 from . import util
-
 
 class Seismograph:
     """Finds the avalanches and corresponding sizes and durations in a signal.
@@ -22,9 +24,9 @@ class Seismograph:
     vt : float
         Threshold value; events are found when the signal crosses this threshold
     s : np.ndarray
-        Signal to be integrated during an avalanche to get avalanche sizes; by default, this is the same signal as
-        v, the one being watched for avalanches. But it can also be different, e.g., a domain wall avalanche can
-        be thresholded on the velocity, but can be integrated to get the avalanche sizes in terms of Axy and Az.
+        Signal to be integrated during an avalanche to get avalanche sizes; by default, this is v-vt.
+        But it can also be different, e.g., a domain wall avalanche can be thresholded on the velocity,
+        but can be integrated to get the avalanche sizes in terms of Axy and Az.
 
         If this parameter is applied, no threshold is subtracted from s before it is integrated.
 
@@ -35,7 +37,7 @@ class Seismograph:
         self.t = t
         self.v = v
         self.vt = vt
-        self.s = s or v         # If s not passed, use v
+        self.s = s or v - vt         # If s not passed, use v
 
         if t.shape != v.shape != s.shape:
             warnings.warn(f't, v, and s must be the same shape. (t, v, s): ({len(t)}, {len(v)}, {len(s)})')
@@ -44,15 +46,18 @@ class Seismograph:
             return
 
         self.istart, self.istop = _events(v, vt)
+        # self.istart, self.istop = _remove_length1_events(*_events(v, vt))
         self.tstart, self.tstop = self.t[self.istart], self.t[self.istop]
         self.durations = self.tstop - self.tstart
 
-        if s is None:
-            self.sizes = _event_sizes(self.t, self.v-self.vt, self.istart, self.istop)
-        else:
-            self.sizes = _event_sizes(self.t, self.s, self.istart, self.istop)
+        self.sizes = _event_sizes(self.t, self.s, self.istart, self.istop)
 
         return
+
+
+def _remove_length1_events(istart, istop):
+    longer_than_1 = istop - istart > 1
+    return istart[longer_than_1], istop[longer_than_1]
 
 
 def _start_indices(v, vt):
@@ -126,7 +131,7 @@ def _events(v, vt):
     return i_start, i_stop
 
 
-def _event_sizes(t, v_minus_vt, i_start, i_stop):
+def _event_sizes(t, s, i_start, i_stop):
     """Compute the size of each avalanche in the signal. The size of an avalanche is the integral of the signal over
     the time the signal is above the threshold. This integration is done using rectangles, with
 
@@ -138,7 +143,7 @@ def _event_sizes(t, v_minus_vt, i_start, i_stop):
     ----------
     t : np.ndarray
         Time
-    v : np.ndarray
+    s : np.ndarray
         Signal to be integrated
     i_start : np.ndarray
         Array of starting indices of the events
@@ -156,7 +161,7 @@ def _event_sizes(t, v_minus_vt, i_start, i_stop):
 
     ret = np.empty(i_start.shape[0])
     for i in range(len(i_start)):
-        ret[i] = np.sum(v_minus_vt[i_start[i]:i_stop[i]]*dt[i_start[i]:i_stop[i]], axis=0)
+        ret[i] = np.sum(s[i_start[i]:i_stop[i]]*dt[i_start[i]:i_stop[i]], axis=0)
 
     return ret
 
@@ -274,7 +279,7 @@ def loghist(data, bins):
     """
 
     logbins = np.logspace(np.log10(np.min(data)), np.log10(np.max(data)), bins)
-    hist, _ = np.histogram(data, bins=logbins)
+    hist, _ = np.histogram(data, bins=logbins, density=True) # density=True apparently makes this a PDF by dividing by the bin width and sample size
 
     # Normalize the distributions; the number of occurences in each bin is divided by the bin width and the sample size
     hist = hist/(np.diff(logbins)*len(data))
@@ -299,10 +304,89 @@ def avg_event_size(data, bins=40, key='vdw'):
     return log_time_bins, avg_size
 
 
-def logbin2d(datax, datay, nbinsx, nbinsy):
+@nb.jit(nopython=True)
+def loghist2d(datax, datay, nbinsx, nbinsy):
 
-    _binsx = np.logspace(np.log10(np.min(datax)), np.log10(np.max(datax)), nbinsx+1)
-    _binsy = np.logspace(np.log10(np.min(datay)), np.log10(np.max(datay)), nbinsy+1)
+    # These define the bin edges.
+    binsx = 10**np.linspace(np.log10(np.min(datax)), np.log10(np.max(datax)), nbinsx+1)
+    binsy = 10**np.linspace(np.log10(np.min(datay)), np.log10(np.max(datay)), nbinsy+1)
+    hist = np.zeros((nbinsx, nbinsy))
 
-    binsx, binsy = np.meshgrid(_binsx, _binsy)
+    bin_areas = np.outer((binsx[1:] - binsx[:-1]), (binsy[1:] - binsy[:-1]))
 
+    for i in range(datax.size):
+
+        # Find the correct bin to increment
+        _iy = np.nonzero(datay[i] >= binsy[:-1])[0]
+        _ix = np.nonzero(datax[i] >= binsx[:-1])[0]
+
+        iy = -1
+        ix = -1
+        if _iy.size > 0:
+            iy = _iy[-1]
+
+        if _ix.size > 0:
+            ix = _ix[-1]
+
+        # Increment
+        hist[iy, ix] += 1
+
+    hist = hist/(bin_areas*datax.size)
+
+    return hist, binsx, binsy
+
+
+def joint_pdf_bin_areas(binsx, binsy):
+    """Given a 1D set of bin edges along x and y, compute the 2D set of bin areas formed by the grid.
+
+    Parameters
+    ----------
+    binsx : np.ndarray
+        1D array of bin edges
+    binsy : np.ndarray
+        1D array of bin edges along y
+
+    Returns
+    -------
+    np.ndarray
+        2D array of bin areas for the given bin sizes
+    """
+
+    xbsize = binsx[1:] - binsx[:-1]
+    ybsize = binsy[1:] - binsy[:-1]
+    return np.outer(xbsize, ybsize)
+
+
+def joint_pdf_bin_centers(binsx, binsy):
+    """Compute the centers of bins given the bin edges.
+
+    Parameters
+    ----------
+    binsx : np.ndarray
+        bin edges along x
+    binsy : np.ndarray
+        bin edges along y
+
+    Returns
+    -------
+    (np.ndarray, np.ndarray)
+        bin centers along (x, y). These arrays are 1 element shorter than the inputs.
+    """
+    return (binsx[1:] + binsx[:-1])*0.5, (binsy[1:] + binsy[:-1])*0.5
+
+
+def joint_pdf_mean_y(pdf, binsx, binsy):
+
+    # Get the bin centers
+    bincx, bincy = joint_pdf_bin_centers(binsx, binsy)
+
+    # Get the frequency distribution from the probability density by multiplying by bin areas
+    freq = pdf*joint_pdf_bin_areas(binsx, binsy)
+
+    # Find the frequency distribution along each column, effectively finding conditional probabilities P(X=x0, Y)
+    col_freq = freq/np.outer(np.ones(binsy.size), np.sum(freq, axis=0))
+
+    # Find the average y-value for each column
+    col_mean = np.sum(col_freq*np.outer(bincy, np.ones(binsx.size)), axis=0)
+
+    return return col_mean
