@@ -144,7 +144,7 @@ class SimData:
     def get_seismograph(self, key='vdw'):
         if key in self.VALID_TIMESERIES:
             if key not in self.seismograph:
-                self.seismograph[key] = statutil.Seismograph(self.t(), getattr(self, key)(), self.threshold)
+                self.seismograph[key] = statutil.Seismograph(t=self.t(), v=self.vdw(), vt=self.threshold, s=getattr(self, key)())
             return self.seismograph[key]
         else:
             raise ValueError(f'Seismograph requested ({key}) is not a valid timeseries: {self.VALID_TIMESERIES}')

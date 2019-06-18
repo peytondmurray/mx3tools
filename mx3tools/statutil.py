@@ -384,9 +384,17 @@ def joint_pdf_mean_y(pdf, binsx, binsy):
     freq = pdf*joint_pdf_bin_areas(binsx, binsy)
 
     # Find the frequency distribution along each column, effectively finding conditional probabilities P(X=x0, Y)
-    col_freq = freq/np.outer(np.ones(binsy.size), np.sum(freq, axis=0))
+    col_freq = freq/np.outer(np.ones(bincy.size), np.sum(freq, axis=0))
 
     # Find the average y-value for each column
-    col_mean = np.sum(col_freq*np.outer(bincy, np.ones(binsx.size)), axis=0)
+    col_mean = np.sum(col_freq*np.outer(bincy, np.ones(bincx.size)), axis=0)
 
-    return return col_mean
+    return col_mean
+
+def extent(binsx, binsy):
+    return np.array([binsx.min(), binsx.max(), binsy.min(), binsy.max()])
+
+def lognan(pdf):
+    _pdf = pdf.copy()
+    _pdf[pdf <= 0] = np.nan
+    return np.log10(_pdf)

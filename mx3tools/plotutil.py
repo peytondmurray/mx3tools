@@ -577,3 +577,17 @@ def ovfVideo(first_file, fname='out.avi', fps=30, comp=2, cmap='viridis', norm=T
     writer.release()
 
     return
+
+def bin_edge_lines(ax, xb, yb, **kwargs):
+
+    lines = []
+    for _xb in xb:
+        lines.append([(_xb, yb.min()), (_xb, yb.max())])
+    for _yb in yb:
+        lines.append([(xb.min(), _yb), (xb.max(), _yb)])
+
+    collection = mplcollections.LineCollection(segments=lines, **kwargs)
+    ax.add_collection(collection)
+
+    return
+    
