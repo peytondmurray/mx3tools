@@ -37,7 +37,7 @@ class Seismograph:
         self.t = t
         self.v = v
         self.vt = vt
-        self.s = s or v - vt         # If s not passed, use v
+        self.s = s if s is not None else v - vt
 
         if t.shape != v.shape != s.shape:
             warnings.warn(f't, v, and s must be the same shape. (t, v, s): ({len(t)}, {len(v)}, {len(s)})')
@@ -262,8 +262,9 @@ def event_hists(data, bins, key='vdw'):
         raise NotImplementedError
 
 
-def loghist(data, bins):
+def loghist(_data, bins):
     """Generate bins and a histogram, properly normalized by bin size and number of samples, using log spaced bins.
+    The absolute value of the data is taken before being binned.
 
     Parameters
     ----------
@@ -278,11 +279,13 @@ def loghist(data, bins):
         bins, hist
     """
 
+    data = np.abs(_data)
+
     logbins = np.logspace(np.log10(np.min(data)), np.log10(np.max(data)), bins)
     hist, _ = np.histogram(data, bins=logbins, density=True) # density=True apparently makes this a PDF by dividing by the bin width and sample size
 
     # Normalize the distributions; the number of occurences in each bin is divided by the bin width and the sample size
-    hist = hist/(np.diff(logbins)*len(data))
+    # hist = hist/(np.diff(logbins)*len(data))
 
     # Validate the histograms
     util.validate_pdf(logbins, hist)
@@ -302,6 +305,21 @@ def avg_event_size(data, bins=40, key='vdw'):
         avg_size[i] = np.mean(sizes[np.logical_and(times > log_time_bins[i], times < log_time_bins[i+1])])
 
     return log_time_bins, avg_size
+
+
+@nb.jit(nopython=True)
+def hist2d(datax, datay, nbinsx, nbinsy):
+
+    binsx = np.linspace(np.min(datax), np.max(datax), nbinsx+1)
+    binsy = np.linspace(np.min(datay), np.max(datay), nbinsy+1)
+
+    hist = np.zeros((nbinsx, nbinsy))
+
+    bin_areas = np.outer((binsx[1:] - binsx[:-1]))
+
+    #TODO: Finish this
+    raise NotImplementedError
+
 
 
 @nb.jit(nopython=True)
@@ -357,28 +375,29 @@ def joint_pdf_bin_areas(binsx, binsy):
     return np.outer(xbsize, ybsize)
 
 
-def joint_pdf_bin_centers(binsx, binsy):
+# def joint_pdf_bin_centers(binsx, binsy):
+def bin_centers(*bins):
     """Compute the centers of bins given the bin edges.
 
     Parameters
     ----------
-    binsx : np.ndarray
-        bin edges along x
-    binsy : np.ndarray
-        bin edges along y
+    bins : np.ndarray
+        bin edges
 
     Returns
     -------
-    (np.ndarray, np.ndarray)
-        bin centers along (x, y). These arrays are 1 element shorter than the inputs.
+    np.ndarray
+        bin centers. This array is 1 element shorter than the inputs.
     """
-    return (binsx[1:] + binsx[:-1])*0.5, (binsy[1:] + binsy[:-1])*0.5
+    # return (binsx[1:] + binsx[:-1])*0.5, (binsy[1:] + binsy[:-1])*0.5
+    return [(b[1:] + b[:-1])*0.5 for b in bins]
 
 
 def joint_pdf_mean_y(pdf, binsx, binsy):
 
     # Get the bin centers
-    bincx, bincy = joint_pdf_bin_centers(binsx, binsy)
+    # bincx, bincy = joint_pdf_bin_centers(binsx, binsy)
+    bincx, bincy = bin_centers(binsx, binsy)
 
     # Get the frequency distribution from the probability density by multiplying by bin areas
     freq = pdf*joint_pdf_bin_areas(binsx, binsy)
