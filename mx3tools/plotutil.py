@@ -39,7 +39,7 @@ def plot_dw(data, ax=None, **kwargs):
     return
 
 
-def plot_dw_config(data, ax=None, cmap='twilight', marker='cell', dx=2e-9):
+def plot_dw_config(_data, ax=None, cmap='twilight', marker='cell', dx=2e-9):
     """Plot a domain wall. In-plane magnetization (xy) is encoded in the color of the plot.
 
     Parameters
@@ -51,45 +51,52 @@ def plot_dw_config(data, ax=None, cmap='twilight', marker='cell', dx=2e-9):
     cmap : str
         Colormap to use for plotting the magnetization along the DW. Use a cyclic colormap; twilight is default.
     marker : str
-        'cell' or 'line'. 'cell' draws rectangles to represent the domain wall; this is in some sense the best option,
-        since the simulation consists of cells.
+        'cell', 'line', 'o', or '.'. 'cell' draws rectangles to represent the domain wall; this is in some sense the 
+        best option, since the simulation consists of cells.
 
         'line' connects the locations of the domain wall using a line.
+
+        The other two options produce a scatter plot using the specified markers.
+
     dx : float
         If 'cell' markers are used, this specifies the x and y sizes of each cell.
 
     """
 
+    # TODO figure out how to deal with walls which are out of order
+    # data = data.sort_values('y')
+    data = _data.sort_values('y')
+
     if ax is None:
         _, ax = plt.subplots()
     cmap = cm.get_cmap(cmap)
-    colors = []
+    colors = [cmap(np.arctan2(data.iloc[i]['my'], data.iloc[i]['mx'])/(2*np.pi) + 0.5) for i in range(len(data))]
 
-    # TODO figure out how to deal with walls which are out of order
-    # data = data.sort_values('y')
 
     if marker == 'line':
         segments = []
 
         for i in range(len(data)-1):
             segments.append(((data.iloc[i]['x'], data.iloc[i]['y']), (data.iloc[i+1]['x'], data.iloc[i+1]['y'])))
-            colors.append(cmap(np.arctan2(data.iloc[i]['my'], data.iloc[i]['mx'])/(2*np.pi) + 0.5))
 
-        collection = mplcollections.LineCollection(segments=segments, colors=colors, linewidths=6)
+        collection = mplcollections.LineCollection(segments=segments, colors=colors[:-1], linewidths=6)
         collection.set_capstyle('round')
 
         ax.add_collection(collection)
 
     elif marker == 'cell':
         for i in range(len(data)-1):
-            color = cmap(np.arctan2(data.iloc[i]['my'], data.iloc[i]['mx'])/(2*np.pi) + 0.5)
             ax.add_patch(patches.Rectangle((data.iloc[i]['x'], data.iloc[i]['y']),
                                            dx,
                                            dx,
                                            edgecolor='none',
-                                           facecolor=color))
+                                           facecolor=colors[i]))
 
-    ax.set_xlim(0, 0.25*data['y'].max())
+    elif marker in ['o', '.']:
+        ax.scatter(data['x'], data['y'], c=colors)
+
+
+    ax.set_xlim(0.95*data['x'].min(), 1.05*data['x'].max())
     ax.set_ylim(0, data['y'].max())
     ax.set_aspect('equal')
     plt.draw()
