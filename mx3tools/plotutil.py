@@ -163,13 +163,13 @@ def plot_s_hist(ax, sbins, shist, sunits='nm', **kwargs):
         else:
             raise NotImplementedError
 
-        # Make a shallow copy, so that when we pop from the kwargs we don't modify them (dicts are mutable, so we wouldn't)
-        # be able to use the same kwargs in any other function afterwards if we don't copy here
+        # Make a shallow copy, so that when we pop from the kwargs we don't modify them (dicts are mutable, so we
+        # wouldn't be able to use the same kwargs in any other function afterwards if we don't copy here)
         kwargs = kwargs.copy()
         fc = kwargs.pop('facecolor', 'dodgerblue')
         ec = kwargs.pop('edgecolor', 'dodgerblue')
 
-        # Matplotlib doesn't close the last bin properly sometimes (???). Append on a zero to the y-values as workaround.
+        # Matplotlib doesn't close the last bin properly sometimes (?). Append on a zero to the y-values as workaround.
         ax.fill_between(sbins, np.hstack((shist, np.zeros(1))), facecolor=fc, step='post', edgecolor=ec)
 
         ax.set_xscale('log')
@@ -307,8 +307,7 @@ def burst(ax, data, cmap='viridis', **kwargs):
         ax.add_collection(collection)
 
     elif cmap == 'angle':
-        warnings.warn(
-            'Calling burst with cmap=angle is extremely slow. Matplotlib usually cannot handle this many lines; ctrl-c to give up.')
+        warnings.warn('Burst with cmap=angle is slow. Matplotlib cannot handle this many lines; ctrl-c to give up.')
         for w in tqdm.tqdm(wall.config, desc='Plotting DW configs'):
             plot_dw_config(w, ax=ax, cmap='twilight', marker='line')
 
