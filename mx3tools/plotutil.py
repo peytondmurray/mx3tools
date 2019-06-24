@@ -435,7 +435,51 @@ def anim_burst(ax, data, cmap, track=False, **kwargs):
                                    interval=kwargs.get('interval', 100))
 
 
-def event_shape(ax, data, duration, tol, plot_individual_events=True, nev_text=True, **kwargs):
+def event_shape(ax, data, duration, tol, nev_text=True, **kwargs):
+    """Plot the average event shape, including contributions from events with duration D such that
+
+            duration-tol < D < duration+tol
+
+    Parameters
+    ----------
+    ax : Axes
+        Axes on which to draw the event shape
+    data : datautil.SimRun or datautil.SimData
+        Data from which to get the events
+    duration : float
+        Duration of events to include in average
+    tol : float
+        Tolerance for determining which events to include
+    nev_text : bool, optional
+        If True, the number of events in drawn on the axes, by default True
+
+    """
+
+    t, s, tbin, sbin = statutil.bin_avg_event_shape(data, duration, tol)
+    ax.plot(tbin, sbin, '-', color='dodgerblue', linewidth=3)
+    if nev_text:
+        ax.text(0.1, 0.8, f'# events: {len(t)}', transform=ax.transAxes, color='w')
+
+    return
+
+
+def plot_individual_events(ax, data, duration, tol, nev_text=True, **kwargs):
+    """Plot all the individual events in the dataset, including contributions from events with duration D such that
+
+            duration-tol < D < duration+tol
+
+    Parameters
+    ----------
+    ax : Axes
+        Axes on which to draw the events
+    data : datautil.SimRun or datautil.SimData
+        Data from which to get the events
+    duration : float
+        Duration of events to draw
+    tol : float
+        Tolerance for determining which events to include
+    """
+
     t, s = data.events_by_duration(duration, tol)
     t = statutil.normalize_t(t)
 
@@ -446,16 +490,12 @@ def event_shape(ax, data, duration, tol, plot_individual_events=True, nev_text=T
     # Default values
     kwargs = util.dict_add(kwargs, {'colors': 'k', 'alpha': 0.2})
 
-    if plot_individual_events:
-        ax.add_collection(mplcollections.LineCollection(lines, **kwargs))
-
-    tbin, sbin = statutil.bin_avg(t, s, nbins=None, norm=True)
-    ax.plot(tbin, sbin, '-', color='dodgerblue', linewidth=3)
+    ax.add_collection(mplcollections.LineCollection(lines, **kwargs))
 
     if nev_text:
         ax.text(0.1, 0.8, f'# events: {len(t)}', transform=ax.transAxes, color='w')
 
-    return tbin, sbin
+    return
 
 
 def sanity_event_shape(ax, data, duration, tol, **kwargs):

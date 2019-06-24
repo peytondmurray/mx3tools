@@ -166,8 +166,17 @@ def _event_sizes(t, s, i_start, i_stop):
     return ret
 
 
+def bin_avg_event_shape(data, duration, tol, nbins=None, norm=True):
+
+    t, s = data.events_by_duration(duration, tol)
+    t = normalize_t(t)
+    tbin, sbin = bin_avg(t, s, nbins=nbins, norm=norm)
+
+    return t, s, tbin, sbin
+
+
 def bin_avg(t, s, nbins=None, norm=True):
-    """Bin and average the input signals. The times of each event are normalized from 0 to 1.
+    """Bin and average the input signals. The times of each event are normalized from 0 to 1 if norm=True.
 
     Parameters
     ----------
