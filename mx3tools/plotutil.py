@@ -211,13 +211,13 @@ def plot_t_hist(ax, tbins=None, thist=None, tunits='ns', **kwargs):
         else:
             raise NotImplementedError
 
-        # Make a shallow copy, so that when we pop from the kwargs we don't modify them (dicts are mutable, so we wouldn't)
-        # be able to use the same kwargs in any other function afterwards if we don't copy here
+        # Make a shallow copy, so that when we pop from the kwargs we don't modify them (dicts are mutable, so we
+        # wouldn't be able to use the same kwargs in any other function afterwards if we don't copy here)
         kwargs = kwargs.copy()
         fc = kwargs.pop('facecolor', 'dodgerblue')
         ec = kwargs.pop('edgecolor', 'dodgerblue')
 
-        # Matplotlib doesn't close the last bin properly sometimes (???). Append on a zero to the y-values as workaround.
+        # Matplotlib doesn't close the last bin properly sometimes (?). Append on a zero to the y-values as workaround.
         ax.fill_between(tbins, np.hstack((thist, np.zeros(1))), facecolor=fc, step='post', edgecolor=ec, **kwargs)
 
         ax.set_xscale('log')
@@ -451,12 +451,12 @@ def event_shape(ax, data, duration, tol, plot_individual_events=True, nev_text=T
         ax.add_collection(mplcollections.LineCollection(lines, **kwargs))
 
     tbin, sbin = statutil.bin_avg(t, s, nbins=None, norm=True)
-    ax.plot(tbin, sbin, '-', color='firebrick', linewidth=3)
+    ax.plot(tbin, sbin, '-', color='dodgerblue', linewidth=3)
 
     if nev_text:
-        ax.text(0.1, 0.8, f'# events: {len(t)}', transform=ax.transAxes, color='r')
+        ax.text(0.1, 0.8, f'# events: {len(t)}', transform=ax.transAxes, color='w')
 
-    return
+    return tbin, sbin
 
 
 def sanity_event_shape(ax, data, duration, tol, **kwargs):
@@ -578,6 +578,7 @@ def ovfVideo(first_file, fname='out.avi', fps=30, comp=2, cmap='viridis', norm=T
 
     return
 
+
 def bin_edge_lines(ax, xb, yb, **kwargs):
 
     lines = []
@@ -590,4 +591,3 @@ def bin_edge_lines(ax, xb, yb, **kwargs):
     ax.add_collection(collection)
 
     return
-    
