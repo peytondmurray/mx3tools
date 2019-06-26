@@ -330,7 +330,6 @@ def hist2d(datax, datay, nbinsx, nbinsy):
     raise NotImplementedError
 
 
-
 @nb.jit(nopython=True)
 def loghist2d(datax, datay, nbinsx, nbinsy):
 
@@ -403,6 +402,22 @@ def bin_centers(*bins):
 
 
 def joint_pdf_mean_y(pdf, binsx, binsy):
+    """From a joint PDF, calculate the mean along the y-direction for each x-bin.
+
+    Parameters
+    ----------
+    pdf : np.ndarray
+        Array of shape (binsy.size - 1, binsx.size - 1). This is the probability density function
+    binsx : np.ndarray
+        Array of bin edges along the x direction
+    binsy : np.ndarray
+        Array of bin edges along the y direction
+
+    Returns
+    -------
+    np.ndarray
+        The mean along the y-direction for each x-bin; should be of shape (binsx.size - 2).
+    """
 
     # Get the bin centers
     # bincx, bincy = joint_pdf_bin_centers(binsx, binsy)
@@ -419,10 +434,93 @@ def joint_pdf_mean_y(pdf, binsx, binsy):
 
     return col_mean
 
+
 def extent(binsx, binsy):
+    """Get the extent of the 2D histogram generated from binsx and binsy.
+
+    Parameters
+    ----------
+    binsx : np.ndarray
+        Bin edges along x
+    binsy : np.ndarray
+        Bin edges along y
+
+    Returns
+    -------
+    np.ndarray
+        Array of [xmin, xmax, ymin, ymax]
+    """
     return np.array([binsx.min(), binsx.max(), binsy.min(), binsy.max()])
 
+
 def lognan(pdf):
+    """Compute the log10 of the input PDF. This function gets around errors associated with taking the log of a
+    histogram which has one or more bins with 0 events by masking those bins with np.nan values before taking the log.
+
+    Parameters
+    ----------
+    pdf : np.ndarray
+        Input probability distribution function
+
+    Returns
+    -------
+    np.ndarray
+        Returns log10(pdf), except if there are any bins where the pdf == 0, those bins now have np.nan values.
+    """
     _pdf = pdf.copy()
     _pdf[pdf <= 0] = np.nan
     return np.log10(_pdf)
+
+
+def overhang(wall):
+    """Calculate the overhang parameter as a function of y along the wall. See _overhang() for details.
+
+    Parameters
+    ----------
+    wall : pandas.DataFrame or datautil.DomainWall
+        Location of the zero crossing of Mz.
+
+    Returns
+    -------
+    np.ndarray or list of np.ndarray
+        If wall is a single pandas Dataframe (corresponding to zero crossings at a single moment in time), the
+        return value is a np.ndarray of values of the overhang as a function of y.
+
+        If wall is a datautil.Domainwall, this is a list of np.ndarrays, each holding the value of the y-dependent
+        overhang parameter.
+    """
+
+    if isinstance(wall, pd.DataFrame):
+        return _overhang(wall)
+    elif isinstance(wall, datautil.DomainWall):
+        return [_overhang(w) for w in wall]
+    else:
+        raise ValueError(f'Invalid wall type passed as parameter. type(wall) = {type(wall)}')
+
+
+def _overhang(wall):
+    """Calculate the overhang parameter as a function of y along the wall. For each value of y, the overhang is defined
+
+        δh(y') = max({ZC(x, y=y')}) - min({ZC(x, y=y')})
+
+    where {ZC(x, y)} represents the set of all zero crossings of Mz. If there is only one zero crossing at a given
+    y-value, then δh = 0.
+
+    Parameters
+    ----------
+    wall : pandas.DataFrame
+        The locations of the zero crossings of Mz along the wall. Must have 'x' and 'y' columns, but if you've used
+        datautil.Domainwall, the columns will be ['x', 'y', 'z', 'mx', 'my', 'mz'].
+
+    Returns
+    -------
+    np.ndarray
+        Overhang as a function of the y-coordinate
+    """
+
+    δh = np.empty(len(wall['y'].unique()))
+    s_wall = wall.sort_values(['y', 'x'])  # Sort the DataFrame first by 'y', then by 'x'
+    for i, val in enumerate(s_wall['y'].unique()):
+        row = s_wall.loc[s_wall['y'] == val]['x']
+        δh[i] = row.max() - row.min()
+    return δh
