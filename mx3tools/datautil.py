@@ -230,29 +230,38 @@ class SimRun:
 
     """
 
-    def __init__(self, root, drop_duplicates=False):
+    def __init__(self, root=None, drop_duplicates=False, simulations=None, metadata=None):
 
-        self.root = pathlib.Path(root)
+        if root is not None:
+            self.root = pathlib.Path(root)
 
-        if (self.root / 'slurm_map.csv').is_file():
+            if (self.root / 'slurm_map.csv').is_file():
 
-            # Get the metadata from the slurm map
-            _metadata = pd.read_csv((self.root / 'slurm_map.csv').as_posix(), sep=',')
-            scripts = [(self.root / script).as_posix() for script in _metadata['script'].values]
-            _metadata['script'] = scripts
+                # Get the metadata from the slurm map
+                _metadata = pd.read_csv((self.root / 'slurm_map.csv').as_posix(), sep=',')
+                scripts = [(self.root / script).as_posix() for script in _metadata['script'].values]
+                _metadata['script'] = scripts
 
-            # Ignore any entries which either are missing the input script or the output directory
-            _valid_indices = []
-            for i in tqdm.trange(len(_metadata), desc='Reading simulation data'):
-                _script = pathlib.Path(_metadata.iloc[i]['script'])
-                if _script.exists() and (self.root / f'{_script.stem}.out').exists():
-                    _valid_indices.append(i)
+                # Ignore any entries which either are missing the input script or the output directory
+                _valid_indices = []
+                for i in tqdm.trange(len(_metadata), desc='Reading simulation data'):
+                    _script = pathlib.Path(_metadata.iloc[i]['script'])
+                    if _script.exists() and (self.root / f'{_script.stem}.out').exists():
+                        _valid_indices.append(i)
 
-            self.metadata = _metadata.iloc[_valid_indices]
+                self.metadata = _metadata.iloc[_valid_indices]
+
+            else:
+                self.metadata = get_metadata(self.root)
+            self.simulations = self._get_simulations(drop_duplicates)
+
+        elif simulations is not None:
+            if metadata is not None:
+                self.metadata = metadata
+            self.simulations = simulations
 
         else:
-            self.metadata = get_metadata(self.root)
-        self.simulations = self._get_simulations(drop_duplicates)
+            raise NotImplementedError
 
         return
 
@@ -271,7 +280,15 @@ class SimRun:
         return [sim.get_simulation_time() for sim in self.simulations]
 
     def __getitem__(self, i):
-        return self.simulations[i]
+
+        if isinstance(i, slice):
+            return SimRun(simulations=self.simulations[i], metadata=self.metadata.iloc[i])
+
+        elif isinstance(i, int):
+            return self.simulations[i]
+
+        else:
+            raise NotImplementedError
 
     def __setitem__(self, i, val):
         self.simulations[i] = val
