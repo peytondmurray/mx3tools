@@ -347,6 +347,10 @@ class SimRun:
 
         return times, signals
 
+    def __add__(self, other):
+        return SimRun(simulations=self.simulations + other.simulations,
+                      metadata=pd.concat([self.metadata, other.metadata], ignore_index=True))
+
 
 def get_metadata(root):
 
