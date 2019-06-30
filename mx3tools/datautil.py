@@ -407,6 +407,17 @@ def Bw(B, T, alpha):
 
 
 class OommfSim:
+    """Class which can read OOMMF simulation data.
+
+    Parameters
+    -------
+    outdir : str or pathlib.Path
+        Path to directory containing the output simulation data. OommfSim by default reads any files with extension
+
+            .omf: These hold magnetization data
+            .odt: These hold the output data table
+
+    """
 
     def __init__(self, outdir):
         # Need to write a parser to get column names...for now, take the easy (fast) way out
@@ -439,13 +450,27 @@ class OommfSim:
 
         self.outdir = pathlib.Path(outdir)
         self.mif = outdir / (outdir.stem + '.mif')
-        self.spin = ovftools.group_unpack(outdir, pattern=outdir.stem)
+        self.spin = ovftools.group_unpack(outdir, pattern=outdir.stem)  # Shape is (nfiles, Nz, Nx, Ny, 3)
         self.table = self.extract_odt(outdir)
         self.header = self.extract_header(outdir)
 
         return
 
     def extract_header(self, outdir):
+        """Read the header of the magnetization data files. This contains info about simulation size, discretization,
+        and so on.
+
+        Parameters
+        ----------
+        outdir : str or pathlib.Path
+            Directory containing magnetization data files, with extension .omf.
+
+        Returns
+        -------
+        dict
+            Dictionary containing header information.
+        """
+
         for item in sorted(pathlib.Path(self.outdir).iterdir()):
             if item.suffix == '.omf':
                 return ovftools.read_header(item.as_posix())
@@ -457,16 +482,35 @@ class OommfSim:
                 return pd.read_csv(item.as_posix(), sep=r'\s+', header=None, names=self.names, comment='#')
         raise ValueError(f'No odt found in {outdir}')
 
-    def dwpos(self, dx=1e-9):
+    def dwpos(self):
+        """Get the domain wall position along x from each omf file by taking the mean of Mz.
+
+        Returns
+        -------
+        np.ndarray
+            Array of domain wall positions, shape (nfiles)
+        """
         pos = []
         for i in range(self.spin.shape[0]):
-            pos.append(self._dwpos(self.spin[i, 0, :, :, 2], dx))
+            pos.append(self._dwpos(self.spin[i, 0, :, :, 2]))
 
         return np.array(pos)
 
-    def _dwpos(self, mz, dx):
-        pct = 1-(1-np.mean(mz))/2
+    def _dwpos(self, mz):
+        """Calculate the domain wall position along x by taking the mean of Mz.
 
+        Parameters
+        ----------
+        mz : np.ndarray
+            Array of spin values; should be of shape (Nz, Ny, Nx, 3)
+
+        Returns
+        -------
+        float
+            Position of the domain wall within the simulation window [nm]
+        """
+
+        pct = 1-(1-np.mean(mz))/2
         return pct*self.nxyz()[0]*self.dxyz()[0]
 
     def e_demag(self):
@@ -476,9 +520,23 @@ class OommfSim:
         return self.table['Oxs_UZeeman::Bz']
 
     def nxyz(self):
+        """Get the number of cells in the x, y, z directions
+
+        Returns
+        -------
+        3-tuple of int
+            Number of cells in the x, y, z direction: (Nx, Ny, Nz)
+        """
         return self.header['xnodes'], self.header['ynodes'], self.header['znodes']
 
     def dxyz(self):
+        """Get the cell size in the x, y, z direction
+
+        Returns
+        -------
+        3-tuple of float
+            Cell size in the x, y, z directions: (dx, dy, dz) [nm]
+        """
         return self.header['xstepsize'], self.header['ystepsize'], self.header['zstepsize']
 
     def __len__(self):
