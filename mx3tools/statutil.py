@@ -167,6 +167,33 @@ def _event_sizes(t, s, i_start, i_stop):
 
 
 def bin_avg_event_shape(data, duration, tol, nbins=None, norm=True):
+    """Get the binned-average event shapes from the data.  Each event has a time array (t) and signal array (s).
+    Events of duration d which fall within
+
+        duration - tol < d < duration + tol
+
+    are collected. The time arrays are then normalized to the interval [0, 1]. The time-axis is then divided into nbins
+    number of time bins, and the value of s in each bin is averaged across all events.
+
+    Parameters
+    ----------
+    data : datautil.SimRun or datautil.Simdata
+        Data to analyze
+    duration : float
+        Set the duration of the bins to average.
+    tol : float
+        Sets the tolerance determining which events to include in the average.
+    nbins : int
+        Number of bins to divide the time axis into. If nbins==None, uses the smallest number of bins possible; see
+        docstring for bin_avg()
+    norm : bool
+        Set to True to normalize the time to the interval [0, 1]
+
+    Returns
+    -------
+    4-tuple of np.ndarray
+        (event times, event signals, binned-normalized time, binned-average signal)
+    """
 
     t, s = data.events_by_duration(duration, tol)
     t = normalize_t(t)
@@ -182,14 +209,13 @@ def bin_avg(t, s, nbins=None, norm=True):
     ----------
     t : list or np.ndarray
         Can be
-
         1. A list of np.ndarrays, each containing a set of times (usually corresponding to measurements durng
            an avalanche)
         2. A 1D np.ndarray containing times
     s : list or np.ndarray
         Values of the signal measured at times t. Must be same shape as t.
     nbins : int or None
-        Number of bins to use. If None, then a sensible number is chosen: t_binned = np.arange(min(t), max(t), mean(dt))
+        Number of bins to use. If None, then the number of bins is set equal to the length of the smallest event array.
     norm : bool
         Scale the t-axis to [0, 1].
 
