@@ -12,6 +12,7 @@ import time
 from . import datautil
 from . import util
 
+
 class Seismograph:
     """Finds the avalanches and corresponding sizes and durations in a signal.
 
@@ -291,7 +292,7 @@ def loghist(_data, bins):
     data = np.abs(_data)
 
     logbins = np.logspace(np.log10(np.min(data)), np.log10(np.max(data)), bins)
-    hist, _ = np.histogram(data, bins=logbins, density=True) # density=True apparently makes this a PDF by dividing by the bin width and sample size
+    hist, _ = np.histogram(data, bins=logbins, density=True)  # density=True apparently makes this a PDF by dividing by the bin width and sample size
 
     # Normalize the distributions; the number of occurences in each bin is divided by the bin width and the sample size
     # hist = hist/(np.diff(logbins)*len(data))
@@ -326,7 +327,7 @@ def hist2d(datax, datay, nbinsx, nbinsy):
 
     bin_areas = np.outer((binsx[1:] - binsx[:-1]))
 
-    #TODO: Finish this
+    # TODO: Finish this
     raise NotImplementedError
 
 

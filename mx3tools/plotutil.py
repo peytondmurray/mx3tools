@@ -51,7 +51,7 @@ def plot_dw_config(_data, ax=None, cmap='twilight', marker='cell', dx=2e-9):
     cmap : str
         Colormap to use for plotting the magnetization along the DW. Use a cyclic colormap; twilight is default.
     marker : str
-        'cell', 'line', 'o', or '.'. 'cell' draws rectangles to represent the domain wall; this is in some sense the 
+        'cell', 'line', 'o', or '.'. 'cell' draws rectangles to represent the domain wall; this is in some sense the
         best option, since the simulation consists of cells.
 
         'line' connects the locations of the domain wall using a line.
@@ -125,116 +125,48 @@ def color_wheel(fig, cmap='twilight'):
     return
 
 
-def plot_hists(axes, data, bins=40, tunits='ns', sunits='nm', key='vdw', **kwargs):
-    """Plot the t and s histograms. See plot_s_hist and plot_t_hist docstrings for more info.
+def plot_filled_hist(ax, bins, hist, xscale='log', yscale='log', **kwargs):
+    """Convenience function: plot a histogram, automatically setting the x and y scales to log, and using the
+    bin centers for the location of the data points. Draws the data as a set of filled steps, rather than as points.
 
     Parameters
     ----------
-    axes : axes
-        Tuple of axes on which to plot the t and s histograms, respectively
-    data : mx3tools.SimData or mx3tools.SimRun
-        Data from which the histograms are generated
+    ax : axes
+        Axes on which to draw
+    bins : np.ndarray
+        Array of bin edges, should be of length (hist.size + 1)
+    hist : np.ndarray
+        Array of bin values
+    xscale : str, optional
+        xscale, by default 'log'
+    yscale : str, optional
+        yscale, by default 'log'
     """
-
-    sbins, shist, tbins, thist = statutil.event_hists(data, bins, key=key)
-    plot_t_hist(axes[0], tbins, thist, tunits=tunits, **kwargs)
-    plot_s_hist(axes[1], sbins, shist, sunits=sunits, **kwargs)
+    ax.fill_between(statutil.bin_centers(bins)[0], hist, step='mid', **kwargs)
+    ax.set(xscale=xscale, yscale=yscale)
     return
 
 
-def plot_s_hist(ax, sbins, shist, sunits='nm', **kwargs):
-    """Plot the s histogram.
+def plot_hist(ax, bins, hist, xscale='log', yscale='log', **kwargs):
+    """Convenience function: plot a histogram, automatically setting the x and y scales to log, and using the
+    bin centers for the locations of the data points.
 
     Parameters
     ----------
-    ax : Axes
-        Axes on which to plot the histogram
-    sbins : np.ndarray
-        The edges of the s histogram bins, including the rightmost edge; len(sbins) = len(shist) + 1
-    shist : np.ndarray
-        The s histogram; shist[i] gives the value of the histogram between sbins[i] and sbins[i+1]
-    sunits : str, optional
-        Units to be used for plotting the s values: 'nm' [default] or 'm', or pass your own float
+    ax : axes
+        Axes on which to draw
+    bins : np.ndarray
+        Array of bin edges, should be of length (hist.size + 1)
+    hist : np.ndarray
+        Array of bin values
+    xscale : str, optional
+        xscale, by default 'log'
+    yscale : str, optional
+        yscale, by default 'log'
     """
-
-    if sbins is not None and shist is not None:
-        if isinstance(sunits, str):
-            if sunits == 'nm':
-                sbins /= 1e-9
-            elif sunits == 'm':
-                pass
-            else:
-                raise NotImplementedError
-        elif isinstance(sunits, float):
-            sbins /= sunits
-        else:
-            raise NotImplementedError
-
-        # Make a shallow copy, so that when we pop from the kwargs we don't modify them (dicts are mutable, so we
-        # wouldn't be able to use the same kwargs in any other function afterwards if we don't copy here)
-        kwargs = kwargs.copy()
-        fc = kwargs.pop('facecolor', 'dodgerblue')
-        ec = kwargs.pop('edgecolor', 'dodgerblue')
-
-        # Matplotlib doesn't close the last bin properly sometimes (?). Append on a zero to the y-values as workaround.
-        ax.fill_between(sbins, np.hstack((shist, np.zeros(1))), facecolor=fc, step='post', edgecolor=ec)
-
-        ax.set_xscale('log')
-        ax.set_yscale('log')
-
-        ax.set_xlabel(f'Size ({sunits})')
-        ax.set_ylabel('Frequency')
-
-        return
-    else:
-        raise ValueError('tbins and thist both must be passed as parameters.')
-
-
-def plot_t_hist(ax, tbins=None, thist=None, tunits='ns', **kwargs):
-    """Plot the t histogram.
-
-    Parameters
-    ----------
-    ax : Axes
-        Axes on which to plot the histogram
-    tbins : np.ndarray
-        The edges of the t histogram bins, including the rightmost edge; len(tbins) = len(thist) + 1
-    thist : np.ndarray
-        The t histogram; thist[i] gives the value of the histogram between tbins[i] and tbins[i+1]
-    tunits : str or float
-        Units to be used for plotting the t values: 'ns' [default] or 's', or pass your own float
-    """
-
-    if tbins is not None and thist is not None:
-        if isinstance(tunits, str):
-            if tunits == 'ns':
-                tbins /= 1e-9
-            elif tunits == 's':
-                pass
-            else:
-                raise NotImplementedError
-        elif isinstance(tunits, float):
-            tbins /= tunits
-        else:
-            raise NotImplementedError
-
-        # Make a shallow copy, so that when we pop from the kwargs we don't modify them (dicts are mutable, so we
-        # wouldn't be able to use the same kwargs in any other function afterwards if we don't copy here)
-        kwargs = kwargs.copy()
-        fc = kwargs.pop('facecolor', 'dodgerblue')
-        ec = kwargs.pop('edgecolor', 'dodgerblue')
-
-        # Matplotlib doesn't close the last bin properly sometimes (?). Append on a zero to the y-values as workaround.
-        ax.fill_between(tbins, np.hstack((thist, np.zeros(1))), facecolor=fc, step='post', edgecolor=ec, **kwargs)
-
-        ax.set_xscale('log')
-        ax.set_yscale('log')
-
-        ax.set_xlabel(f'Duration ({tunits})')
-        ax.set_ylabel('Frequency')
-        return
-    else:
-        raise ValueError('tbins and thist both must be passed as parameters.')
+    ax.plot(statutil.bin_centers(bins)[0], hist, **kwargs)
+    ax.set(xscale=xscale, yscale=yscale)
+    return
 
 
 def anim_track(ax, *walls, interval=100, maxframes=None, label='time', **kwargs):
