@@ -69,6 +69,12 @@ class DomainWall:
     def __getitem__(self, i):
         return self.config[i]
 
+    def n_bloch_lines(self):
+        n_bloch = []
+        for w in self:
+            n_bloch.append(_n_bloch_lines(w))
+        return np.array(n_bloch)
+
 
 class SimData:
     """This class holds output data from a single simulation.
@@ -545,3 +551,35 @@ class OommfSim:
 
     def __len__(self):
         return self.spin.shape[0]
+
+
+def n_bloch_lines(df):
+    """Get the number of bloch lines from the domain wall dataframe df.
+    
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        DataFrame with columns [x, y, z, mx, my, mz], with rows corresponding to the zero crossing of the magnetization.
+    """
+
+    return
+
+
+def ordered_wall(_df):
+
+    # Wall is sorted where there are no overhangs; need to sort parts where there are overhangs
+    next_val = []
+    df = _df.copy()
+    for i, row in df.iterrows():
+
+    return
+
+class WallTree:
+
+    def __init__(self, df):
+        self.df = df
+        self.build_tree()
+        return self.traverse()
+
+    def build_tree(self):
+        tree = [0]
