@@ -11,73 +11,30 @@ import mx3tools.datautil as datautil
 import mx3tools.plotutil as plotutil
 import tqdm
 import cmocean
+plt.style.use('dark_background')
 
+# data_0 = datautil.SimRun('/mnt/Data/dmidw/D_0.0e-3/2019-05-26/')
+df = pd.read_csv('/mnt/Data/dmidw/D_0.0e-3/2019-05-26/barkhausen_0.out/domainwall006000.csv', skiprows=3)
 
-data_0 = datautil.SimRun('/home/pdmurray/Desktop/Workspace/dmidw/barkhausen/D_0.0e-3/2019-05-26/')
+# datautil.n_bloch_lines(df, 2e-9)
 
-bins = 40
+# f = datautil.wrap_distance(df.iloc[0], df.iloc[1:], df['y'].max())
+
+# blochlines = datautil.n_bloch_lines(df, 2e-9)
+_df = datautil.tsp(df, 0, df['y'].max(), tmax=5, nt=1000)
+
+# print('a')
 
 fig, ax = plt.subplots(figsize=(10, 10))
 
-sizes = data_0.get_avalanche_sizes(key='vdw')
-times = data_0.get_avalanche_durations()
 
-z, xb, yb = statutil.loghist2d(times, sizes, bins, bins)
+# x = df['x']
+# y = df['y']
+x = _df['x']
+y = _df['y']
 
-_z = z.copy()
-_z[z <= 0] = np.nan
-_z = np.log10(_z)
-
-# mean_Sv = np.mean(z, axis=0)
-
-# im = ax.imshow(_z,
-#                origin='lower',
-#                extent=[np.min(xb), np.max(xb), np.min(yb), np.max(yb)],
-#                vmin=np.min(_z[_z > 0]),
-#                cmap=cmocean.cm.ice_r,
-#                interpolation='nearest')
-
-
-# for b in xb:
-#     ax.plot([b, b], [np.min(yb), np.max(yb)], '-w', alpha=0.25)
-# for b in yb:
-#     ax.plot([np.min(xb), np.max(xb)], [b, b],  '-w', alpha=0.25)
-
-
-_xb_actual = 10**xb
-_yb_actual = 10**yb
-
-__xb, __yb = np.meshgrid(_xb_actual, _yb_actual)
-
-_x = (xb[1:]+xb[:-1])*0.5
-
-# _y = np.log10(mean_Sv)
-
-# _y = np.mean((_yb_actual[1:] + _yb_actual[:-1])*0.5*z, axis=0)
-
-
-probability = (__yb[1:, :-1]-__yb[:-1, :-1])*0.5*(__xb[:-1, 1:]-__xb[:-1, :-1])*0.5*z
-
-
-im = ax.imshow(probability,
-               origin='lower',
-               extent=[np.min(xb), np.max(xb), np.min(yb), np.max(yb)],
-               vmin=np.min(probability[probability > 0]),
-               cmap=cmocean.cm.ice_r,
-               interpolation='nearest')
-
-
-
-# _y = np.mean((__yb[1:, :-1]-__yb[:-1, :-1])*0.5*(__xb[:-1, 1:]-__xb[:-1, :-1])*0.5*z, axis=0)
-
-
-# ax.plot((xb[1:]+xb[:-1])*0.5, np.log10(probability), linestyle='-', color='orange')
-# ax.plot((xb[1:]+xb[:-1])*0.5, np.log10(_y), linestyle='-', color='orange')
-# ax.plot((xb[1:]+xb[:-1])*0.5, np.log10(mean_Sv), linestyle='-', color='orange')
-# ax.plot((xb[1:]+xb[:-1])*0.5, np.log10(mean_Sv), linestyle='-', color='orange', drawstyle='steps-mid')
-
-# ax.plot(times, sizes, 'ok', alpha=0.1)
-ax.set(xlabel=r'$\log(T_V)$', ylabel=r'$\log(S_V)$', aspect='auto')
-# fig.colorbar(im)
-
+# ax.quiver(x[:-1], y[:-1], x[1:]-x[:-1], y[1:]-y[:-1], scale_units='xy', angles='xy', scale=1)
+ax.plot(x, y, '-w', alpha=0.5)
+ax.scatter(x, y, c=range(len(x)), cmap='viridis', marker='.')
+ax.set(aspect='equal', ylim=(0, df['y'].max()), xlim=(df['x'].min(), df['x'].max()))
 plt.show()
