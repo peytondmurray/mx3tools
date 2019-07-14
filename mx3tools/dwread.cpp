@@ -73,7 +73,6 @@ std::tuple<int, int> nBloch(std::vector<double> &dphi) {
 
 std::tuple<std::vector<int>*, std::vector<int>*> avgBlochSimData(std::string path) {
 
-
     std::vector<std::string> filenames;
 
     for (const auto & item : bfs::directory_iterator(path)) {
@@ -102,20 +101,6 @@ std::tuple<int, int> readDWFile(std::string path) {
     return {np, nm};
 }
 
-int averageVec(std::vector<std::vector<int>*> &a) {
-
-    int s = 0;
-    int n = 0;
-
-    for (int i=0; i<int(a.size()); i++) {
-        for (int j=0; j<int(a[i]->size()); j++) {
-            s += (*a[i])[j];
-            n++;
-        }
-    }
-
-    return double(s)/double(n);
-}
 
 void deallocate(std::vector<std::vector<int>*> a) {
     for (int i=0; i<int(a.size()); i++) delete a[i];
@@ -127,34 +112,26 @@ int main(int argc, char **argv) {
         std::string path(argv[2]);
         std::ofstream outfile;
         bfs::path fpath;
-        std::vector<std::vector<int>*> np;
-        std::vector<std::vector<int>*> nm;
         int np_avg = 0;
         int nm_avg = 0;
 
+        outfile.open(argv[4]);
+        outfile << "Simulation,Bloch (+),Bloch(-)\n";
         for (const auto & item : bfs::directory_iterator(path)) {
             if (bfs::path(item.path()).extension() == ".out") {
                 std::cout << item.path() << std::endl;
                 auto [_np, _nm] = avgBlochSimData(item.path().string());
-                np.push_back(_np);
-                nm.push_back(_nm);
+
+                for (int i=0; i<int((*_np).size()); i++) {
+                    outfile << bfs::path(item.path()).filename() << "," << (*_np)[i] << "," << (*_nm)[i] << std::endl;
+                }
+                delete _np;
+                delete _nm;
             }
         }
 
-        out:
-        np_avg = averageVec(np);
-        nm_avg = averageVec(nm);
-
-        deallocate(np);
-        deallocate(nm);
-
-        outfile.open(argv[4]);
-        outfile << "Bloch (+),Bloch(-)\n";
-        outfile << np_avg << "," << nm_avg << std::endl;
-
-        std::cout << std::endl;
-        std::cout << "np: " << np_avg << "\tnm: " << nm_avg << std::endl;
-
+        outfile.close();
+        std::cout << std::endl << "Finished." << std::endl;
     } else {
         std::cout << "Usage:\n\tdwread -o <data_directory> -i <output filename>\n";
     }
