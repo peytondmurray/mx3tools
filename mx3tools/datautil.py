@@ -220,8 +220,8 @@ class SimData:
 
         return Bw(B, self.t()[-1], alpha)
 
-    def events_by_duration(self, duration, tol):
-        """Get V(t) of all events with durations falling in the interval [duration-tol, duration+tol]"""
+    def events_by_duration(self, dmin, dmax):
+        """Get V(t) of all events with durations falling in the interval [dmin, dmax]"""
 
         event_lengths = self.get_seismograph().durations
         i_start = self.get_seismograph().istart
@@ -231,7 +231,7 @@ class SimData:
         times = []
 
         for e_length, start, stop in zip(event_lengths, i_start, i_stop):
-            if duration-tol < e_length < duration+tol:
+            if dmin < e_length < dmax:
                 signals.append(self.vdw()[start:stop])
                 times.append(self.t()[start:stop])
 
@@ -349,12 +349,12 @@ class SimRun:
     def __len__(self):
         return len(self.simulations)
 
-    def events_by_duration(self, duration, tol):
+    def events_by_duration(self, dmin, dmax):
         times = []
         signals = []
 
         for sim in self.simulations:
-            _t, _s = sim.events_by_duration(duration, tol)
+            _t, _s = sim.events_by_duration(dmin, dmax)
             times += _t
             signals += _s
 

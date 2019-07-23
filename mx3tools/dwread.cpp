@@ -27,7 +27,7 @@ std::vector<double>* parseFile(std::string path, int nheader, int size) {
     }
     while (std::getline(f, buffer)) {
         boost::algorithm::split(vec, buffer, boost::is_any_of(","));
-        (*phi)[i] = atan2(std::stof(vec[4]), std::stof(vec[3]));
+        (*phi)[i] = atan2(std::stod(vec[4]), std::stod(vec[3]));
         i++;
     }
 

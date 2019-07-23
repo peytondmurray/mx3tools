@@ -167,11 +167,16 @@ def _event_sizes(t, s, i_start, i_stop):
     return ret
 
 
-def bin_avg_event_shape(data, duration, tol, nbins=None, norm=True):
+def bin_avg_event_shape(data, duration, tol=None, drange=None, nbins=None, norm=True):
     """Get the binned-average event shapes from the data.  Each event has a time array (t) and signal array (s).
-    Events of duration d which fall within
+    
+    If tol is specified and range is None, events of duration d which fall within
 
         duration - tol < d < duration + tol
+
+    are collected. If drange is specified, events of duration d which fall within
+    
+        drange[0] < d < drange[1]
 
     are collected. The time arrays are then normalized to the interval [0, 1]. The time-axis is then divided into nbins
     number of time bins, and the value of s in each bin is averaged across all events.
@@ -182,8 +187,10 @@ def bin_avg_event_shape(data, duration, tol, nbins=None, norm=True):
         Data to analyze
     duration : float
         Set the duration of the bins to average.
-    tol : float
-        Sets the tolerance determining which events to include in the average.
+    tol : float or None
+        Sets the tolerance determining which events to include in the average. If None, drange is used.
+    drange : (float, float) or None
+        Sets the range determining which events to include in the average. If None, tol is used.
     nbins : int
         Number of bins to divide the time axis into. If nbins==None, uses the smallest number of bins possible; see
         docstring for bin_avg()
@@ -196,7 +203,13 @@ def bin_avg_event_shape(data, duration, tol, nbins=None, norm=True):
         (event times, event signals, binned-normalized time, binned-average signal)
     """
 
-    t, s = data.events_by_duration(duration, tol)
+    if drange is None and tol is not None:
+        t, s = data.events_by_duration(duration-tol, duration+tol)
+    elif tol is None and drange is not None:
+        t, s = data.events_by_duration(drange[0], drange[1])
+    else:
+        raise ValueError('Must specify either a range or tolerance for bin_avg_event_shape()')
+        
     t = normalize_t(t)
     tbin, sbin = bin_avg(t, s, nbins=nbins, norm=norm)
 
