@@ -246,9 +246,9 @@ def burst(ax, data, cmap='viridis', **kwargs):
         ax.add_collection(collection)
 
     elif cmap == 'angle':
-        warnings.warn('Burst with cmap=angle is slow. Matplotlib cannot handle this many lines; ctrl-c to give up.')
+        # warnings.warn('Burst with cmap=angle is slow. Matplotlib cannot handle this many lines; ctrl-c to give up.')
         for w in tqdm.tqdm(wall.config, desc='Plotting DW configs'):
-            plot_dw_config(w, ax=ax, cmap='twilight', marker='line')
+            plot_dw_config(w, ax=ax, cmap='twilight', marker='.')
 
     elif isinstance(cmap, str):
         cmap = cm.get_cmap(cmap)
