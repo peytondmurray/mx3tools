@@ -106,3 +106,4 @@ venv.bak/
 .vscode/
 mx3tools/testing/
 *.o
+dwread

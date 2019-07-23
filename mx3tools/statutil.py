@@ -167,15 +167,15 @@ def _event_sizes(t, s, i_start, i_stop):
     return ret
 
 
-def bin_avg_event_shape(data, duration, tol=None, drange=None, nbins=None, norm=True):
+def bin_avg_event_shape(data, duration=None, tol=None, drange=None, nbins=None, norm=True):
     """Get the binned-average event shapes from the data.  Each event has a time array (t) and signal array (s).
-    
+
     If tol is specified and range is None, events of duration d which fall within
 
         duration - tol < d < duration + tol
 
     are collected. If drange is specified, events of duration d which fall within
-    
+
         drange[0] < d < drange[1]
 
     are collected. The time arrays are then normalized to the interval [0, 1]. The time-axis is then divided into nbins
@@ -186,7 +186,7 @@ def bin_avg_event_shape(data, duration, tol=None, drange=None, nbins=None, norm=
     data : datautil.SimRun or datautil.Simdata
         Data to analyze
     duration : float
-        Set the duration of the bins to average.
+        Set the duration of the bins to average. If None, drange is used.
     tol : float or None
         Sets the tolerance determining which events to include in the average. If None, drange is used.
     drange : (float, float) or None
@@ -203,13 +203,13 @@ def bin_avg_event_shape(data, duration, tol=None, drange=None, nbins=None, norm=
         (event times, event signals, binned-normalized time, binned-average signal)
     """
 
-    if drange is None and tol is not None:
+    if drange is None and tol is not None and duration is not None:
         t, s = data.events_by_duration(duration-tol, duration+tol)
-    elif tol is None and drange is not None:
+    elif tol is None and duration is None and drange is not None:
         t, s = data.events_by_duration(drange[0], drange[1])
     else:
         raise ValueError('Must specify either a range or tolerance for bin_avg_event_shape()')
-        
+
     t = normalize_t(t)
     tbin, sbin = bin_avg(t, s, nbins=nbins, norm=norm)
 
