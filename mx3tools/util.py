@@ -41,3 +41,57 @@ def dict_add(d1, d2):
     d = d1.copy()
     d.update({k: v for k, v in d2.items() if k not in d1})
     return d
+
+
+# // Gives the forward finite difference coefficients in a slice for a given differentiation order m
+# // and number of points n (which determines the order of accuracy). Maximum order of accuracy is always used.
+# // Sorry for the bad code, the notation in the original papers is just as bad.
+# // Fornberg, Bengt (1988), "Generation of Finite Difference Formulas on Arbitrarily Spaced Grids",
+# // Mathematics of Computation, 51 (184): 699–706
+# func fornbergWeights(u float64, x []float64, k int) []float64 {
+
+# 	// if k == 1 && len(x) == 5 {
+# 	// 	dx := x[1] - x[0]
+# 	// 	C := []float64{3 / (12 * dx), -16 / (12 * dx), 36 / (12 * dx), -48 / (12 * dx), 25 / (12 * dx)}
+# 	// 	return C
+# 	// }
+
+# 	n := len(x)
+# 	C := make([][]float64, k+1)
+# 	for i := 0; i < k+1; i++ {
+# 		C[i] = make([]float64, n)
+# 	}
+
+# 	c1 := float64(1)
+# 	c2 := float64(1)
+# 	c3 := float64(0)
+# 	c4 := x[1] - u
+# 	c5 := float64(0)
+# 	C[0][0] = 1.0
+
+# 	for i := 0; i < n; i++ {
+# 		mn := min(i, k)
+# 		c2 = float64(1)
+# 		c5 = c4
+# 		c4 = x[i] - u
+
+# 		for j := 0; j < i; j++ {
+# 			c3 = x[i] - x[j]
+# 			c2 *= c3
+
+# 			if j == i-1 {
+# 				for s := mn; s > 0; s-- {
+# 					C[s][i] = c1 * (float64(s)*C[s-1][i-1] - c5*C[s][i-1]) / c2
+# 				}
+# 				C[0][i] = -c1 * c5 * C[0][i-1] / c2
+# 			}
+# 			for s := mn; s > 0; s-- {
+# 				C[s][j] = (c4*C[s][j] - float64(s)*C[s-1][j]) / c3
+# 			}
+# 			C[0][j] = c4 * C[0][j] / c3
+# 		}
+# 		c1 = c2
+# 	}
+
+# 	return C[k]
+# }
