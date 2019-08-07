@@ -40,7 +40,7 @@ def plot_dw(data, ax=None, **kwargs):
 
 
 def plot_dw_config(_data, ax=None, cmap='twilight', marker='cell', dx=2e-9):
-    """Plot a domain wall. In-plane magnetization (xy) is encoded in the color of the plot.
+    """Plot a domain wall. In-plane magnetization (xy) is encoded in the of the plot.
 
     Parameters
     ----------

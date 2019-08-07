@@ -95,3 +95,39 @@ def dict_add(d1, d2):
 
 # 	return C[k]
 # }
+
+def fornberg(x, x0, k):
+
+    n = len(x)
+    C = np.zeros((k+1, n))
+
+    c1 = 1
+    c2 = 1
+    c3 = 0
+    c4 = x[1]-x0
+    c5 = 0
+
+    C[0, 0] = 1
+
+    for i in range(n):
+        mn = min(i, k)
+        c2 = 1
+        c5 = c4
+        c4 = x[i]-x0
+
+        for j in range(i):
+            c3 = x[i]-x[j]
+            c2 *= c3
+
+            if j == i-1:
+                for s in range(mn, 0, -1):
+                    C[s][i] = c1*(s*C[s-1][i-1] - c5*C[s][i-1])/c2
+                C[0][i] = -c1*c5*C[0][i-1]/c2
+
+            for s in range(mn, 0, -1):
+                C[s][j] = (c4*C[s][j] - s*C[s-1][j])/c3
+            C[0][j] = c4*C[0][j]/c3
+
+        c1 = c2
+
+    return C[k]
