@@ -1,4 +1,5 @@
 import numpy as np
+import numba as nb
 
 
 def validate_pdf(bins, hist, tol=0.01):
@@ -96,38 +97,35 @@ def dict_add(d1, d2):
 # 	return C[k]
 # }
 
-def fornberg(x, x0, k):
+# @nb.jit(nopython=True)
+def fornberg(x, x0, m):
 
     n = len(x)
-    C = np.zeros((k+1, n))
+    C = np.zeros((n, m+1))
 
     c1 = 1
-    c2 = 1
-    c3 = 0
-    c4 = x[1]-x0
-    c5 = 0
+    c4 = x[0] - x0
 
     C[0, 0] = 1
-
-    for i in range(n):
-        mn = min(i, k)
+    for i in range(1, n):
+        mn = min(i, m)
         c2 = 1
         c5 = c4
         c4 = x[i]-x0
 
-        for j in range(i):
+        for j in range(i-1):
             c3 = x[i]-x[j]
-            c2 *= c3
+            c2 = c2*c3
 
             if j == i-1:
-                for s in range(mn, 0, -1):
-                    C[s][i] = c1*(s*C[s-1][i-1] - c5*C[s][i-1])/c2
-                C[0][i] = -c1*c5*C[0][i-1]/c2
-
-            for s in range(mn, 0, -1):
-                C[s][j] = (c4*C[s][j] - s*C[s-1][j])/c3
-            C[0][j] = c4*C[0][j]/c3
-
+                for k in range(mn, 1, -1):
+                    C[i, k] = c1*(k*C[i-1, k-1] - c5*C[i-1, k])/c2
+                C[i, 0] = -c1*c5*C[i-1, 0]/c2
+            
+            for k in range(mn, 1, -1):
+                C[j, k] = (c4*C[j, k] - k*C[j, k-1])/c3
+            
+            C[j, 0] = c4*C[j, 0]/c3
         c1 = c2
 
-    return C[k]
+    return C

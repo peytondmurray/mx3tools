@@ -287,7 +287,8 @@ def normalize_t(t):
 
 
 def event_hists(data, bins, key='vdw'):
-    """Get event histograms. The event sizes and durations are log-distributed.
+    """Get event histograms. The event sizes and durations are log-distributed; the absolute value of the abscissa
+    is taken before the log binning.
 
     Parameters
     ----------

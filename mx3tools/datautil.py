@@ -271,7 +271,13 @@ class SimRun:
         elif simulations is not None:
             if metadata is not None:
                 self.metadata = metadata
-            self.simulations = simulations
+
+            if isinstance(simulations, SimData):
+                self.simulations = [simulations]
+            elif isinstance(simulations, list):
+                self.simulations = simulations
+            else:
+                raise ValueError(f'SimRun.__init__() only accepts SimData or list of SimData objects, not {type(simulations)}')
 
         else:
             raise NotImplementedError
@@ -292,20 +298,21 @@ class SimRun:
     def get_simulation_times(self):
         return [sim.get_simulation_time() for sim in self.simulations]
 
+    # jfc there has to be a better way to force pandas to always give a DataFrame from iloc
     def __getitem__(self, i):
-
-        if isinstance(i, slice):
+        if isinstance(i, int):
+            return SimRun(simulations=[self.simulations[i]], metadata=self.metadata.iloc[[i]])
+        elif isinstance(i, slice):
             return SimRun(simulations=self.simulations[i], metadata=self.metadata.iloc[i])
-
-        elif isinstance(i, int):
-            return self.simulations[i]
-
         else:
-            raise NotImplementedError
+            raise ValueError(f'__getitem__ accepts either an int or a slice, not {type(i)}')
 
     def __setitem__(self, i, val):
         self.simulations[i] = val
         return
+
+    def get_sim(self, i):
+        return self.simulations[i]
 
     def get_avalanche_durations(self):
         return np.hstack([sim.get_avalanche_durations() for sim in self.simulations])
