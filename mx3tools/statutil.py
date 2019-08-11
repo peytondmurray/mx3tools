@@ -374,6 +374,9 @@ def hist2d(datax, datay, nbinsx, nbinsy):
 @nb.jit(nopython=True)
 def loghist2d(datax, datay, nbinsx, nbinsy):
 
+    datax = np.abs(datax)
+    datay = np.abs(datay)
+
     # These define the bin edges.
     binsx = 10**np.linspace(np.log10(np.min(datax)), np.log10(np.max(datax)), nbinsx+1)
     binsy = 10**np.linspace(np.log10(np.min(datay)), np.log10(np.max(datay)), nbinsy+1)
