@@ -167,7 +167,7 @@ def _event_sizes(t, s, i_start, i_stop):
     return ret
 
 
-def bin_avg_event_shape(data, duration=None, tol=None, drange=None, nbins=None, norm=True):
+def bin_avg_event_shape(data, duration=None, tol=None, drange=None, nbins=None, norm=True, normy=False):
     """Get the binned-average event shapes from the data.  Each event has a time array (t) and signal array (s).
 
     If tol is specified and range is None, events of duration d which fall within
@@ -211,12 +211,12 @@ def bin_avg_event_shape(data, duration=None, tol=None, drange=None, nbins=None, 
         raise ValueError('Must specify either a range or tolerance for bin_avg_event_shape()')
 
     t = normalize_t(t)
-    tbin, sbin = bin_avg(t, s, nbins=nbins, norm=norm)
+    tbin, sbin = bin_avg(t, s, nbins=nbins, norm=norm, normy=normy)
 
     return t, s, tbin, sbin
 
 
-def bin_avg(t, s, nbins=None, norm=True):
+def bin_avg(t, s, nbins=None, norm=True, normy=False):
     """Bin and average the input signals. The times of each event are normalized from 0 to 1 if norm=True.
 
     Parameters
@@ -241,7 +241,8 @@ def bin_avg(t, s, nbins=None, norm=True):
         Average value of the signal at each timestep
     """
 
-    t = normalize_t(t)
+    if norm:
+        t = normalize_t(t)
 
     if isinstance(t, list):
         f_t = np.hstack(t).flatten()
@@ -269,7 +270,12 @@ def bin_avg(t, s, nbins=None, norm=True):
     # in_last_bin = np.nonzero(np.logical_and(t_bin[-2] <= f_t, f_t <= t_bin[-1]))
     # s_bin[-1] = np.mean(f_s[in_last_bin])
 
-    return t_bin, s_bin
+    if normy == 'max':
+        return t_bin, (s_bin - np.min(s_bin))/(np.max(s_bin)-np.min(s_bin))
+    elif normy == 'area':
+        return t_bin, (s_bin)/np.trapz(s_bin, t_bin)
+    else:
+        return t_bin, s_bin
 
 
 def normalize_t(t):
