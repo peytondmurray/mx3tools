@@ -32,6 +32,6 @@ setup(
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.7',
     ],
-    install_requires=["matplotlib", "numpy", "ipywidgets", "ipython", "pandas", "tqdm"],
+    install_requires=["matplotlib", "numpy", "ipywidgets", "ipython", "pandas", "tqdm", "opencv-python", "astropy"],
     python_requires='>=3',
 )

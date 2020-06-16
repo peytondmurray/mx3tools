@@ -9,13 +9,18 @@
 import re
 import numpy as np
 import struct
-import pathlib
 import tqdm
 from . import ioutil
-from . import util
 
 
 def read_header(path):
+    """read_header.
+
+    Parameters
+    ----------
+    path :
+        path
+    """
     path = ioutil.pathize(path)
 
     with path.open('rb') as f:
@@ -205,10 +210,10 @@ def group_unpack(path, pattern='m'):
             raise ValueError(f'No .omf or .ovf files found in {path}')
 
     elif path.suffix == '.ovf':
-        pattern = re.search('\D+', path.stem)[0]
+        pattern = re.search(r'\D+', path.stem)[0]
         files = sorted(path.parent.glob(f'{pattern}*.ovf'))
     elif path.suffix == '.omf':
-        pattern = re.search('.+', path.stem)[0]
+        pattern = re.search(r'.+', path.stem)[0]
         files = sorted(path.parent.glob(f'{pattern}*.omf'))
     else:
         raise ValueError(f'Invalid path: {path} must end in .out, .ovf, or .omf')
