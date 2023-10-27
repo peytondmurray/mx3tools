@@ -5,6 +5,12 @@
 #
 # The _fast_binary_decode function uses numpy's ndarray constructor to eliminate the need for loops, dramatically
 # reducing the time needed to move the data read from the file object into an array (~100x speedup).
+# 
+# The _text_decode function uses numpy's loadtxt to eliminate the need for loops.
+# Also, it now supports scalar text data.
+# 
+# unpack() works on both text and binary format (prefer the binary! it is much less heavy)
+# unpack() works on both scalar and vector data (ouput shape is always [znodes, ynodes, xnodes, valuedim] )
 
 import re
 import numpy as np
@@ -89,6 +95,7 @@ def _read_header(fobj):
                     "xnodes",
                     "ynodes",
                     "znodes",
+                    "valuedim",
                     "valuemultiplier"]:
             if key in line:
                 headers[key] = float(line.split(': ')[1])
@@ -144,42 +151,27 @@ def _binary_decode(f, chunk_size, decoder, headers, dtype):
 
 
 def _text_decode(f, headers):
-
-    data = np.empty((int(headers['znodes']),
-                     int(headers['ynodes']),
-                     int(headers['xnodes']), 3), dtype=float)
-
-    for k in range(data.shape[0]):
-        for j in range(data.shape[1]):
-            for i in range(data.shape[2]):
-                text = f.readline().strip().split()
-                data[k, j, i] = (float(text[0]), float(text[1]), float(text[2]))
+    
+    arrshape=[int(headers[key]) for key in ['znodes','ynodes','xnodes','valuedim']]
+    
+    data = np.loadtxt(f, max_rows=np.prod(arrshape[:3])).reshape(arrshape)
 
     return data*headers.get('valuemultiplier', 1)
 
 
 def _fast_binary_decode(f, chunk_size, headers, dtype):
 
-    xs, ys, zs = (int(headers['xnodes']), int(headers['ynodes']), int(headers['znodes']))
-    ret = np.ndarray(shape=(xs*ys*zs, 3),
+    arrshape=[int(headers[key]) for key in ['znodes','ynodes','xnodes','valuedim']]
+    ret = np.ndarray(shape=arrshape,
                      dtype=dtype,
-                     buffer=f.read(xs*ys*zs*3*chunk_size),
-                     offset=0,
-                     strides=(3*chunk_size, chunk_size))
-
-    return ret.reshape((zs, ys, xs, 3))
+                     buffer=f.read(np.prod(arrshape)*chunk_size),
+                     offset=0
+                     )
+    return ret
 
 
 def _fast_binary_decode_scalars(f, chunk_size, headers, dtype):
-
-    xs, ys, zs = (int(headers['xnodes']), int(headers['ynodes']), int(headers['znodes']))
-    ret = np.ndarray(shape=(xs*ys*zs, 1),
-                     dtype=dtype,
-                     buffer=f.read(xs*ys*zs*chunk_size),
-                     offset=0,
-                     strides=(chunk_size, chunk_size))
-
-    return ret.reshape((zs, ys, xs))
+    return _fast_binary_decode(f, chunk_size, headers, dtype)[...,0]
 
 
 def group_unpack(path, pattern='m'):
@@ -225,18 +217,8 @@ def group_unpack(path, pattern='m'):
 
 
 def unpack_scalars(path):
-    path = ioutil.pathize(path)
-
-    with path.open('rb') as f:
-        headers = _read_header(f)
-
-        if headers['data_type'][3] == 'Binary':
-            chunk_size = int(headers['data_type'][4])
-            return _fast_binary_decode_scalars(f, chunk_size, headers, _endianness(f, chunk_size))
-
-        else:
-            raise NotImplementedError
-
+    return unpack(path)[...,0]
+    
 
 def as_rodrigues(path, fname):
     """For each m*.ovf file in the given directory, generate a corresponding .csv containing the indices, rotation
